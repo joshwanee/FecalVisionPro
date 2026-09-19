@@ -1,0 +1,302 @@
+/*
+ * FecalVision styles.
+ *
+ * Built for the actual use case: a phone held at arm's length in a coop, often
+ * in bright sun. That drives the choices here — heavy weights, large type,
+ * thumb-sized targets, and contrast well past the minimum.
+ */
+
+:root {
+  --ink: #1a1d1b;
+  --ink-soft: #55605a;
+  --paper: #faf9f6;
+  --card: #ffffff;
+  --line: #e2e0d9;
+
+  --forest: #1f3a2e;
+  --forest-bright: #2d5a44;
+  --clay: #8c4a2f;
+  --amber: #a6741a;
+
+  --radius: 14px;
+  --shadow: 0 1px 2px rgb(26 29 27 / 6%), 0 8px 24px rgb(26 29 27 / 6%);
+
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-text-size-adjust: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+}
+
+.app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- top bar ---------------------------------------------------------- */
+
+.app__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.15rem;
+  background: var(--forest);
+  color: #eef3ef;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.app__mark {
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  font-size: 1.05rem;
+}
+
+.app__net {
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 14%);
+}
+
+.app__net--off {
+  background: var(--amber);
+  color: #1a1d1b;
+}
+
+/* ---- scan screen ------------------------------------------------------ */
+
+.scan {
+  flex: 1;
+  width: 100%;
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 1.35rem 1.15rem 2.5rem;
+}
+
+.scan__header h1 {
+  margin: 0 0 0.4rem;
+  font-size: 1.65rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.scan__header p {
+  margin: 0 0 1.4rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.scan__status {
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius);
+  background: #eef2ef;
+  color: var(--forest);
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.scan__error {
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius);
+  background: #fbeeea;
+  color: var(--clay);
+  border: 1px solid #f0d6cc;
+  margin-bottom: 1rem;
+}
+
+/* ---- buttons ---------------------------------------------------------- */
+
+.scan__actions {
+  display: grid;
+  gap: 0.7rem;
+  margin-bottom: 1.5rem;
+}
+
+.button {
+  display: block;
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0.95rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 80ms ease, background 120ms ease;
+}
+
+.button:active {
+  transform: scale(0.985);
+}
+
+.button--primary {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: #f4f8f5;
+}
+
+.button--primary:active {
+  background: var(--forest-bright);
+}
+
+/* ---- preview ---------------------------------------------------------- */
+
+.scan__preview {
+  margin: 0 0 1.5rem;
+}
+
+.scan__preview img {
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius);
+  background: #ecebe5;
+  box-shadow: var(--shadow);
+}
+
+.scan__preview figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+/* ---- result ----------------------------------------------------------- */
+
+.result {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--forest);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow);
+}
+
+.result--uncertain {
+  border-left-color: var(--amber);
+}
+
+.result h2 {
+  margin: 0 0 0.3rem;
+  font-size: 1.4rem;
+  letter-spacing: -0.015em;
+}
+
+.result__confidence {
+  margin: 0 0 0.9rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--forest-bright);
+}
+
+.result p {
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.result ul {
+  margin: 0.6rem 0 1rem;
+  padding-left: 1.1rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.result li {
+  margin-bottom: 0.35rem;
+}
+
+/* ---- probability breakdown -------------------------------------------- */
+
+.breakdown {
+  margin: 1.25rem 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.breakdown h3 {
+  margin: 0 0 0.7rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.breakdown__row {
+  display: grid;
+  grid-template-columns: 8.5rem 1fr 3.4rem;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.86rem;
+}
+
+.breakdown__label {
+  color: var(--ink);
+}
+
+.breakdown__bar {
+  display: block;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #ecebe5;
+  overflow: hidden;
+}
+
+.breakdown__bar > span {
+  display: block;
+  height: 100%;
+  background: var(--forest-bright);
+  border-radius: 999px;
+}
+
+.breakdown__row:first-of-type .breakdown__bar > span {
+  background: var(--forest);
+}
+
+.breakdown__value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+/* ---- footer ----------------------------------------------------------- */
+
+.scan__footer {
+  margin-top: 2rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--line);
+}
+
+.scan__footer p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+@media (min-width: 40rem) {
+  .scan__actions {
+    grid-template-columns: 1fr 1fr;
+  }
+}

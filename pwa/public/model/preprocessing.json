@@ -1,0 +1,20 @@
+{
+  "input_range": "[0, 255] float32",
+  "resize": "bilinear, centre-crop to square, then resize to 224x224",
+  "normalisation": "inside the model: x / 127.5 - 1.0  (MobileNetV2 convention)",
+  "color_space": "RGB",
+  "input_shape": [
+    1,
+    224,
+    224,
+    3
+  ],
+  "input_dtype": "float32",
+  "output": "softmax probabilities, shape [1,4]",
+  "browser_steps": [
+    "draw the image to a canvas, centre-cropped to a square",
+    "resize to 224x224 bilinear",
+    "read RGB as float32 in [0,255] - do NOT divide by 255",
+    "the exported graph applies x/127.5 - 1 internally"
+  ]
+}
