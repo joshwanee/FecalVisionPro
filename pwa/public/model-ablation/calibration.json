@@ -1,0 +1,7 @@
+{
+  "temperature": 0.7000000000000002,
+  "threshold": 0.83,
+  "coverage": 0.9137645107794361,
+  "selective_accuracy": 0.9818511796733213,
+  "model": "ablation_none (unweighted) — comparison only"
+}

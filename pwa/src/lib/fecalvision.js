@@ -16,10 +16,15 @@
 
 import * as tf from '@tensorflow/tfjs';
 
-const MODEL_URL = '/model/model.json';
-const META_URL = '/model/class_names.json';
-const CALIBRATION_URL = '/model/calibration.json';
-const IDB_KEY = 'indexeddb://fecalvision-v1';
+// const MODEL_URL = '/model/model.json';
+// const META_URL = '/model/class_names.json';
+// const CALIBRATION_URL = '/model/calibration.json';
+// const IDB_KEY = 'indexeddb://fecalvision-v1';
+const MODEL_DIR = '/model';          // '/model-ablation' to switch
+const MODEL_URL = `${MODEL_DIR}/model.json`;
+const META_URL = `${MODEL_DIR}/class_names.json`; 
+const CALIBRATION_URL = `${MODEL_DIR}/calibration.json`;
+const IDB_KEY = `indexeddb://fecalvision-${MODEL_DIR.slice(1)}`;
 const INPUT_SIZE = 224;
 
 /** Fallbacks if the metadata files are missing; the JSON always wins. */
@@ -99,6 +104,11 @@ export async function loadModel({ onProgress } = {}) {
 
     return model;
   })();
+
+    // Let a later attempt retry instead of replaying the failure.
+  modelPromise.catch(() => {
+    modelPromise = null;
+  });
 
   return modelPromise;
 }
