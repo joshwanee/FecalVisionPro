@@ -3,18 +3,20 @@ import { useCamera } from '../hooks/useCamera';
 import { useCropGuide } from '../hooks/useCropGuide';
 import { evaluate, LIMITS, measureFrame, smoothMetrics } from '../lib/quality';
 import QualityChecklist from './QualityChecklist';
-import { CameraIcon, ImageIcon } from './icons';
+import { CameraIcon, CloseIcon, ImageIcon } from './icons';
 
+// Open the app with ?debug in the address bar to see the raw quality numbers.
 const DEBUG = new URLSearchParams(window.location.search).has('debug');
 
 /**
  * Live camera preview with a framing guide and real-time quality feedback.
  *
+ * inputMode       : 'whole' or 'square' (only changes the guide's wording)
  * onCapture(blob)  : called with a full-frame JPEG when the user takes the photo
  * onPickFile()     : open the file picker instead (fallback path)
  * onCancel()       : go back
  */
-export default function CaptureView({ onCapture, onPickFile, onCancel }) {
+export default function CaptureView({ inputMode, onCapture, onPickFile, onCancel }) {
   const videoRef = useRef(null);
   const frameRef = useRef(null);
   const smoothed = useRef(null); // smoothed measurements across frames
@@ -47,8 +49,9 @@ export default function CaptureView({ onCapture, onPickFile, onCancel }) {
   const capture = () => {
     const video = videoRef.current;
     if (!video || !video.videoWidth) return;
-    // Save the WHOLE frame. The model's centre-crop happens later, inside
-    // preprocess(), exactly as it does for a photo picked from the gallery.
+    // Save the WHOLE frame at the camera's full resolution. What part of it the
+    // model uses is decided later (see analysisInput.js), the same way as for a
+    // photo picked from the gallery.
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -70,7 +73,7 @@ export default function CaptureView({ onCapture, onPickFile, onCancel }) {
           <button type="button" className="button button--primary" onClick={onPickFile}>
             <ImageIcon /> Choose a photo
           </button>
-          <button type="button" className="button" onClick={camera.restart}>
+          <button type="button" className="button button--secondary" onClick={camera.restart}>
             Try the camera again
           </button>
           <button type="button" className="button button--quiet" onClick={onCancel}>
@@ -99,35 +102,40 @@ export default function CaptureView({ onCapture, onPickFile, onCancel }) {
             style={{ width: guideSide, height: guideSide }}
             aria-hidden="true"
           >
-            <span className="frame__tag">The model sees this square</span>
+            <span className="frame__tag">
+              {inputMode === 'square' ? 'The model sees this square' : 'Keep the dropping in this square'}
+            </span>
           </div>
         )}
         {!live && <p className="frame__wait">Starting the camera…</p>}
+        {DEBUG && quality && (
+          <pre className="frame__debug">
+            {`light ${quality.metrics.brightness.toFixed(0)} (${LIMITS.MIN_BRIGHTNESS}-${LIMITS.MAX_BRIGHTNESS})  ` +
+              `glare ${(quality.metrics.blownOutFraction * 100).toFixed(0)}% (max ${LIMITS.MAX_BLOWN_OUT_FRACTION * 100})\n` +
+              `sharp ${quality.metrics.sharpness.toFixed(0)} (min ${LIMITS.MIN_SHARPNESS})  ` +
+              `fill ${(quality.metrics.fill * 100).toFixed(0)}% (min ${LIMITS.MIN_FILL * 100})`}
+          </pre>
+        )}
       </div>
 
-      <QualityChecklist quality={quality} debug={DEBUG} />
+      <div className="capture__panel">
+        <QualityChecklist quality={quality} />
 
-      <div className="capture__controls">
+        {/* Primary action at the bottom of the screen, where the thumb rests. */}
         <button
           type="button"
           className={`button button--big ${hasProblems ? 'button--caution' : 'button--primary'}`}
           onClick={capture}
           disabled={!live}
-          aria-describedby={hasProblems ? 'capture-hint' : undefined}
         >
           <CameraIcon /> {hasProblems ? 'Capture anyway' : 'Capture'}
         </button>
-        {hasProblems && (
-          <p id="capture-hint" className="capture__hint">
-            {quality.problems[0].message}. A better photo gives a clearer result.
-          </p>
-        )}
         <div className="capture__secondary">
           <button type="button" className="button button--quiet" onClick={onPickFile}>
-            <ImageIcon /> Choose a photo
+            <ImageIcon /> Choose photo
           </button>
           <button type="button" className="button button--quiet" onClick={onCancel}>
-            Cancel
+            <CloseIcon /> Cancel
           </button>
         </div>
       </div>

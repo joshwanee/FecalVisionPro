@@ -9,11 +9,11 @@ import { RetakeIcon } from './icons';
  * anything is analysed. The quality checks are re-run on the still, so a photo
  * chosen from the gallery gets the same advice as a camera capture.
  *
- * onAnalyse(imgElement, quality) : run the model on this photo
- * onRetake()                     : throw it away and go back
+ * onAnalyse(quality) : run the model on this photo
+ * onRetake()         : throw it away and go back
+ * inputMode          : 'whole' or 'square' (what part of the photo the model sees)
  */
-export default function ReviewView({ url, busy, modelReady, onAnalyse, onRetake }) {
-  const imgRef = useRef(null);
+export default function ReviewView({ url, busy, modelReady, inputMode, onAnalyse, onRetake }) {
   const frameRef = useRef(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [quality, setQuality] = useState(null);
@@ -25,19 +25,17 @@ export default function ReviewView({ url, busy, modelReady, onAnalyse, onRetake 
     setQuality(evaluate(measureFrame(img)));
   };
 
-  const hasProblems = quality && !quality.ok;
-
   return (
     <section className="capture" aria-label="Review photo">
       <div className="frame" ref={frameRef}>
         <img
-          ref={imgRef}
           className="frame__media"
           src={url}
           alt="The photo you took, ready to analyse"
           onLoad={handleLoad}
         />
-        {guideSide > 0 && (
+        {/* The square is drawn only when the model really uses just the centre square. */}
+        {inputMode === 'square' && guideSide > 0 && (
           <div
             className={`frame__guide ${quality?.ok ? 'frame__guide--ok' : 'frame__guide--bad'}`}
             style={{ width: guideSide, height: guideSide }}
@@ -48,24 +46,17 @@ export default function ReviewView({ url, busy, modelReady, onAnalyse, onRetake 
         )}
       </div>
 
-      <QualityChecklist quality={quality} />
-
-      <div className="capture__controls">
+      <div className="capture__panel">
+        <QualityChecklist quality={quality} />
         <button
           type="button"
           className="button button--big button--primary"
-          onClick={() => onAnalyse(imgRef.current, quality)}
+          onClick={() => onAnalyse(quality)}
           disabled={busy || !modelReady || !size.w}
         >
           {busy ? 'Analysing…' : modelReady ? 'Analyse this photo' : 'Model still loading…'}
         </button>
-        {hasProblems && (
-          <p className="capture__hint">
-            This photo has problems: {quality.problems[0].message.toLowerCase()}. Retaking will
-            give a clearer result.
-          </p>
-        )}
-        <button type="button" className="button" onClick={onRetake} disabled={busy}>
+        <button type="button" className="button button--secondary" onClick={onRetake} disabled={busy}>
           <RetakeIcon /> Retake
         </button>
       </div>

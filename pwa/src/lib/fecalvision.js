@@ -43,6 +43,53 @@ const ADVICE = {
     'Whitish or sulphur-coloured droppings can indicate salmonellosis, which is a food-safety risk as well as a bird-health one. Handle birds and eggs with care and seek veterinary confirmation.',
 };
 
+/**
+ * Wrap fetch so we can count the bytes of the weight files as they stream in.
+ * (TensorFlow.js's own onProgress only counts finished files, so with two
+ * weight files it jumps 0%, 50%, 100%. Counting bytes gives a truthful bar.)
+ * The body is passed straight through, so the model itself is unaffected.
+ */
+function fetchWithByteProgress(onProgress) {
+  const files = new Map(); // url -> { loaded, total }
+  const report = () => {
+    let loaded = 0;
+    let total = 0;
+    for (const f of files.values()) {
+      loaded += f.loaded;
+      total += f.total;
+    }
+    // If the server did not say how big a file is, assume about 4.6 MB overall.
+    const expected = total > 0 ? total : 4.6e6;
+    onProgress?.(Math.min(loaded / expected, 0.99)); // 100% is reported when loading finishes
+  };
+
+  return async (url, init) => {
+    const response = await fetch(url, init);
+    if (!String(url).endsWith('.bin') || !response.body) return response;
+
+    const entry = { loaded: 0, total: Number(response.headers.get('content-length')) || 0 };
+    files.set(url, entry);
+    const reader = response.body.getReader();
+    const counted = new ReadableStream({
+      async pull(controller) {
+        const { done, value } = await reader.read();
+        if (done) {
+          controller.close();
+          return;
+        }
+        entry.loaded += value.length;
+        report();
+        controller.enqueue(value);
+      },
+    });
+    return new Response(counted, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    });
+  };
+}
+
 let modelPromise = null;
 let meta = { classes: [], calibration: null };
 
@@ -60,7 +107,7 @@ async function fetchJSON(url, fallback) {
  * Load the graph model, preferring the IndexedDB copy so repeat launches are
  * instant and work with no connection at all.
  */
-export async function loadModel({ onProgress } = {}) {
+export async function loadModel({ onProgress, onStage } = {}) {
   if (modelPromise) return modelPromise;
 
   modelPromise = (async () => {
@@ -89,11 +136,14 @@ export async function loadModel({ onProgress } = {}) {
     await tf.ready();
 
     let model;
+    onStage?.('checking'); // looking for a copy already saved on this phone
     try {
       model = await tf.loadGraphModel(IDB_KEY);
+      onStage?.('cached');
     } catch {
+      onStage?.('downloading'); // first launch: the real ~4.6 MB download
       model = await tf.loadGraphModel(MODEL_URL, {
-        onProgress: (p) => onProgress?.(p),
+        fetchFunc: fetchWithByteProgress(onProgress),
       });
       try {
         await model.save(IDB_KEY);
@@ -103,6 +153,7 @@ export async function loadModel({ onProgress } = {}) {
     }
 
     // Warm up once so the first real photo is not the slowest one.
+    onStage?.('warming');
     tf.tidy(() => {
       const probe = model.predict(tf.zeros([1, INPUT_SIZE, INPUT_SIZE, 3]));
       Array.isArray(probe) ? probe.forEach((t) => t.dispose()) : probe.dispose();

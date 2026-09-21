@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { belowThreshold, classify, loadModel } from '../lib/fecalvision';
+import { makeStoredPhoto, prepareInput } from '../lib/analysisInput';
+import { classify } from '../lib/fecalvision';
+import { buildRecord, deleteScan, requestPersistence, saveScan } from '../lib/history';
 import CaptureView from './CaptureView';
+import ResultPanel from './ResultPanel';
 import ReviewView from './ReviewView';
-import { CameraIcon, ImageIcon } from './icons';
+import { ModelStatus } from './StatusPanels';
+import { CameraIcon, ImageIcon, InstallIcon } from './icons';
 
 /**
  * FecalVision - scan flow.
@@ -12,83 +16,160 @@ import { CameraIcon, ImageIcon } from './icons';
  *   capturing  -> live camera with framing guide and quality checks
  *   reviewing  -> look at the photo, retake or analyse
  *   analysing  -> the model is running (a fraction of a second)
- *   result     -> what the model found
+ *   result     -> what the model found, shown on the photo you took
  *
- * Everything runs on this device; nothing is uploaded.
+ * While capturing / reviewing / showing a result the rest of the app's
+ * navigation steps out of the way (onFocusChange) so the task has the screen.
+ * Every finished scan is saved to History on this phone; nothing is uploaded.
  */
-export default function ScanScreen() {
+export default function ScanScreen({
+  model,
+  offline,
+  offlineReady,
+  install,
+  inputMode,
+  onOpenMenu,
+  onViewHistory,
+  onFocusChange,
+}) {
   const [phase, setPhase] = useState('idle');
-  const [model, setModel] = useState({ status: 'loading', progress: 0, error: null });
-  const [photoUrl, setPhotoUrl] = useState(null); // object URL of the current photo
-  const [result, setResult] = useState(null);
+  const [photo, setPhoto] = useState(null); // { blob, url } the photo taken or picked
+  const [scan, setScan] = useState(null); // the finished analysis (see ResultPanel)
+  const [saved, setSaved] = useState({ state: 'idle', id: null }); // idle | saved | failed | removed
   const [error, setError] = useState(null);
   const fileRef = useRef(null);
+  const titleRef = useRef(null);
 
-  // Start loading the model straight away so the first scan is not the slow one.
+  // Tell the app shell whether to hide the bottom navigation.
   useEffect(() => {
-    loadModel({ onProgress: (p) => setModel((m) => ({ ...m, progress: p })) })
-      .then(() => setModel((m) => ({ ...m, status: 'ready', progress: 1 })))
-      .catch((e) => setModel((m) => ({ ...m, status: 'error', error: e.message })));
-  }, []);
+    onFocusChange?.(phase !== 'idle');
+    return () => onFocusChange?.(false);
+  }, [phase, onFocusChange]);
 
-  // An object URL holds the photo in memory until it is revoked, so release
-  // the old one whenever the photo changes or the screen closes.
+  // Return focus to the heading when coming back to the start screen.
+  useEffect(() => {
+    if (phase === 'idle') titleRef.current?.focus();
+  }, [phase]);
+
+  // An object URL keeps its image in memory until revoked, so release it when
+  // the photo is replaced or the screen closes.
+  const photoUrl = photo?.url;
   useEffect(() => {
     return () => {
       if (photoUrl) URL.revokeObjectURL(photoUrl);
     };
   }, [photoUrl]);
 
-  const setPhoto = useCallback((blob) => {
-    setResult(null);
+  const takePhoto = useCallback((blob) => {
+    setScan(null);
     setError(null);
-    setPhotoUrl(URL.createObjectURL(blob));
+    setPhoto({ blob, url: URL.createObjectURL(blob) });
     setPhase('reviewing');
   }, []);
 
   const handleFile = (event) => {
     const file = event.target.files?.[0];
     event.target.value = ''; // allow picking the same file again later
-    if (file) setPhoto(file);
+    if (file) takePhoto(file);
   };
 
   const reset = () => {
-    setResult(null);
+    setScan(null);
     setError(null);
-    setPhotoUrl(null);
+    setPhoto(null);
+    setSaved({ state: 'idle', id: null });
     setPhase('idle');
   };
 
-  const analyse = async (imgElement) => {
-    if (!imgElement?.complete) return;
+  const analyse = async (quality) => {
+    if (!photo) return;
     setPhase('analysing');
     setError(null);
     try {
-      setResult(await classify(imgElement));
+      // Build the model's input from the photo's real pixels (not from the
+      // on-screen <img>, whose size depends on the layout). See analysisInput.js.
+      const input = await prepareInput(photo.blob, inputMode);
+      const result = await classify(input);
+
+      // A small JPEG of the whole photo for History and sharing.
+      const storedPhoto = await makeStoredPhoto(photo.blob);
+
+      const finished = {
+        result,
+        quality,
+        inputMode,
+        timestamp: Date.now(),
+        photoBlob: storedPhoto,
+        photoUrl: photo.url,
+      };
+      setScan(finished);
       setPhase('result');
+
+      // Keep the scan (photo + all four probabilities) in History.
+      try {
+        const record = await saveScan(buildRecord(finished));
+        requestPersistence();
+        setSaved({ state: 'saved', id: record.id });
+      } catch {
+        setSaved({ state: 'failed', id: null });
+      }
     } catch (e) {
       setError(`Analysis failed: ${e.message}`);
       setPhase('reviewing');
     }
   };
 
+  const removeSaved = async () => {
+    try {
+      await deleteScan(saved.id);
+      setSaved({ state: 'removed', id: null });
+    } catch {
+      setSaved({ state: 'failed', id: saved.id });
+    }
+  };
+
   const modelReady = model.status === 'ready';
 
   return (
-    <div className="scan">
+    <div className={phase === 'idle' ? 'screen' : 'screen screen--task'}>
       {/* One hidden file input, opened by real buttons so keyboard users can reach it. */}
       <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} hidden />
 
       {phase === 'idle' && (
-        <section aria-labelledby="scan-title">
-          <h1 id="scan-title">Check a dropping</h1>
+        <section className="idle" aria-labelledby="scan-title">
+          <div>
+            <h1 id="scan-title" ref={titleRef} tabIndex={-1}>
+              Check a dropping
+            </h1>
+            <p className="lead">
+              Photograph one fresh dropping in daylight. The check runs on this phone.
+            </p>
+          </div>
+
+          <ModelStatus model={model} offline={offline} offlineReady={offlineReady} />
+
+          {!install.installed && (install.canPrompt || install.showIosHelp) && (
+            <div className="install-banner">
+              <InstallIcon />
+              <div>
+                <p className="install-banner__title">Install to use without internet</p>
+                <p className="install-banner__sub">Adds FecalVision to your home screen.</p>
+              </div>
+              <button
+                type="button"
+                className="button button--secondary button--compact"
+                onClick={install.canPrompt ? install.install : onOpenMenu}
+              >
+                {install.canPrompt ? 'Install' : 'How'}
+              </button>
+            </div>
+          )}
+
           <ol className="steps">
             <li>Use daylight. Avoid shadow and direct glare.</li>
             <li>Get close: one dropping should fill the square.</li>
             <li>Hold steady until every check turns green.</li>
           </ol>
-
-          <ModelStatus model={model} />
 
           <div className="actions">
             <button
@@ -98,111 +179,65 @@ export default function ScanScreen() {
             >
               <CameraIcon /> Open camera
             </button>
-            <button type="button" className="button" onClick={() => fileRef.current?.click()}>
+            <button type="button" className="button button--secondary" onClick={() => fileRef.current?.click()}>
               <ImageIcon /> Choose a photo
             </button>
           </div>
-          <p className="fine">The photo is analysed on this phone. It is never uploaded.</p>
         </section>
       )}
 
       {phase === 'capturing' && (
         <CaptureView
-          onCapture={setPhoto}
+          inputMode={inputMode}
+          onCapture={takePhoto}
           onPickFile={() => fileRef.current?.click()}
           onCancel={reset}
         />
       )}
 
-      {(phase === 'reviewing' || phase === 'analysing') && photoUrl && (
+      {(phase === 'reviewing' || phase === 'analysing') && photo && (
         <>
           {error && (
-            <p className="notice notice--error" role="alert">
-              {error}
+            <p className="callout callout--alert" role="alert">
+              <span>{error}</span>
             </p>
           )}
           <ReviewView
-            url={photoUrl}
+            url={photo.url}
             busy={phase === 'analysing'}
             modelReady={modelReady}
+            inputMode={inputMode}
             onAnalyse={analyse}
             onRetake={() => setPhase('capturing')}
           />
         </>
       )}
 
-      {phase === 'result' && result && <Result result={result} onRetake={reset} />}
-    </div>
-  );
-}
-
-/** Real download progress for the ~4.6 MB model, plus a clear error if it fails. */
-function ModelStatus({ model }) {
-  if (model.status === 'ready') return null;
-  if (model.status === 'error') {
-    return (
-      <p className="notice notice--error" role="alert">
-        The analysis model could not be loaded. {model.error}
-      </p>
-    );
-  }
-  const pct = Math.round(model.progress * 100);
-  return (
-    <div className="notice" role="status">
-      <label htmlFor="model-progress">Preparing the on-device model… {pct}%</label>
-      <progress id="model-progress" max="100" value={pct} />
-    </div>
-  );
-}
-
-/* ---- Temporary result view: replaced by ResultPanel in the next increment ---- */
-
-function Result({ result, onRetake }) {
-  const { label, confidence, ranked, advice, threshold } = result;
-
-  // Use the validated threshold rule only (see belowThreshold in fecalvision.js).
-  if (belowThreshold(result)) {
-    return (
-      <section className="result result--uncertain" aria-live="polite">
-        <h2>Not clear enough to call</h2>
-        <p>
-          The closest match was {label} at {(confidence * 100).toFixed(0)}% confidence, below the{' '}
-          {(threshold * 100).toFixed(0)}% the app requires before reporting a result.
-        </p>
-        <Breakdown ranked={ranked} />
-        <button type="button" className="button" onClick={onRetake}>
-          Take another photo
-        </button>
-      </section>
-    );
-  }
-
-  return (
-    <section className="result" aria-live="polite">
-      <h2>{label}</h2>
-      <p className="result__confidence">{(confidence * 100).toFixed(1)}% confidence</p>
-      {advice && <p>{advice}</p>}
-      <Breakdown ranked={ranked} />
-      <button type="button" className="button" onClick={onRetake}>
-        Check another dropping
-      </button>
-    </section>
-  );
-}
-
-function Breakdown({ ranked }) {
-  return (
-    <div className="breakdown">
-      <h3>All four scores</h3>
-      {ranked.map((r) => (
-        <div key={r.index} className="breakdown__row">
-          <span className="breakdown__label">{r.label}</span>
-          <span className="breakdown__bar" aria-hidden="true">
-            <span style={{ width: `${Math.max(r.probability * 100, 1)}%` }} />
-          </span>
-          <span className="breakdown__value">{(r.probability * 100).toFixed(1)}%</span>
-        </div>
-      ))}
+      {phase === 'result' && scan && (
+        <ResultPanel
+          scan={scan}
+          primaryLabel="Scan another"
+          onPrimary={reset}
+          extra={
+            <p className="saved" role="status">
+              {saved.state === 'saved' && (
+                <>
+                  Saved to History on this phone.{' '}
+                  <button type="button" className="link" onClick={removeSaved}>
+                    Remove
+                  </button>{' '}
+                  <button type="button" className="link" onClick={onViewHistory}>
+                    View history
+                  </button>
+                </>
+              )}
+              {saved.state === 'removed' && 'Removed from History.'}
+              {saved.state === 'failed' &&
+                'This scan could not be saved to History (the phone may be low on storage). The result above is still valid.'}
+            </p>
+          }
+        />
+      )}
     </div>
   );
 }

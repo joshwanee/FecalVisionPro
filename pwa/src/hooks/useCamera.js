@@ -46,7 +46,7 @@ export function useCamera(videoRef) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         // "ideal" means: prefer these, but accept whatever the device offers.
-        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1440 } },
         audio: false,
       });
       if (run !== runRef.current || !videoRef.current) {

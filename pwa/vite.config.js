@@ -9,29 +9,29 @@ export default defineConfig({
       registerType: 'autoUpdate',
       // Test the service worker with `npm run dev` too, not just after a build.
       devOptions: { enabled: true },
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
+        id: '/',
         name: 'FecalVision',
         short_name: 'FecalVision',
         description:
-          'On-device screening of chicken droppings for signs of common poultry diseases',
-        theme_color: '#1f3a2e',
-        background_color: '#faf9f6',
+          'On-device screening of chicken droppings for signs of common poultry diseases. Works offline.',
+        theme_color: '#ffffff', // matches the top bar (--surface in src/tokens.css)
+        background_color: '#f4f6f3', // --bg
         display: 'standalone',
-        orientation: 'portrait',
+        // No orientation lock: the capture screen has a landscape layout.
         start_url: '/',
+        scope: '/',
         icons: [
-          { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
-          {
-            src: 'icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable',
-          },
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icon-192-maskable.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: 'icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
+        // The alternative model kept for comparison must not be downloaded by users.
+        globIgnores: ['**/model-ablation/**'],
         // The weight shards are a few MB each; Workbox skips large files by default.
         globPatterns: ['**/*.{js,css,html,svg,png,ico,json,bin,woff2}'],
         maximumFileSizeToCacheInBytes: 30 * 1024 * 1024,

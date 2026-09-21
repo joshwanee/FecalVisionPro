@@ -1,9 +1,15 @@
 /*
  * FecalVision styles. Colours, sizes and fonts come from tokens.css.
  *
- * Built for a phone held at arm's length in bright sun, often one-handed:
- * heavy weights, large type, thumb-sized targets, actions at the bottom.
+ * Mobile first: everything below is written for a phone held in one hand,
+ * outdoors. Wider layouts are added at the END with min-width media queries,
+ * so a desktop is an adaptation of the phone design, not the other way round.
+ *
+ * Contents: base / app shell / menu / buttons / screens / capture / result /
+ *           history / help / wider screens
  */
+
+/* ---- base ---------------------------------------------------------------- */
 
 * {
   box-sizing: border-box;
@@ -11,174 +17,413 @@
 
 body {
   margin: 0;
-  background: var(--paper);
+  background: var(--bg);
   color: var(--ink);
-  font-family: var(--font-body);
-  font-size: var(--text-base);
+  font-family: var(--font);
+  font-size: var(--text-body);
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
 }
 
 h1,
 h2,
 h3 {
-  font-family: var(--font-display);
-  font-weight: 800;
-  line-height: 1.1;
   margin: 0;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: var(--text-title);
+}
+
+h2 {
+  font-size: var(--text-large);
+}
+
+h3 {
+  font-size: var(--text-body);
 }
 
 p {
   margin: 0;
 }
 
-/* Visible focus for keyboard users, on everything interactive. */
+ul,
+ol {
+  margin: 0;
+}
+
+button,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+/* Visible keyboard focus on everything interactive. */
 :focus-visible {
   outline: 3px solid var(--focus);
-  outline-offset: 3px;
+  outline-offset: 2px;
+}
+
+/* Headings that receive focus programmatically are not controls. */
+h1:focus,
+h2:focus {
+  outline: none;
 }
 
 .icon {
   flex: none;
 }
 
-/* ---- app shell -------------------------------------------------------- */
-
-.app {
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
-}
-
-.app__bar {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--gutter);
-  padding-top: max(var(--space-2), env(safe-area-inset-top));
-  background: var(--field);
-  color: var(--ink-on-dark);
-  border-bottom: var(--line) solid var(--rule);
-}
-
-.app__mark {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: var(--text-large);
-  letter-spacing: 0.01em;
-}
-
-.app__net {
-  font-size: var(--text-small);
-  font-weight: 700;
-  padding: 0.2rem 0.6rem;
-  border: var(--line) solid currentColor;
-  border-radius: var(--radius);
-}
-
-.app__net--off {
-  background: var(--caution-bg);
-  color: var(--caution-ink);
-  border-color: var(--caution-ink);
-}
-
-.app__main {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-}
-
-/* The permanent veterinary referral. Never hidden, never conditional. */
-.vet {
-  flex: none;
-  padding: var(--space-2) var(--gutter);
-  padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
-  background: var(--alert);
-  color: #fff;
-  font-size: var(--text-small);
-  line-height: 1.35;
-}
-
-/* ---- scan screen ------------------------------------------------------ */
-
-.scan {
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-  max-width: 36rem;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  padding: var(--space-4) var(--gutter);
-}
-
-.scan h1 {
-  font-size: var(--text-title);
-  margin-bottom: var(--space-3);
-}
-
-.steps {
-  margin: 0 0 var(--space-4);
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
   padding: 0;
-  list-style: none;
-  counter-reset: step;
-  border-top: var(--line) solid var(--rule);
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
-.steps li {
-  counter-increment: step;
-  display: grid;
-  grid-template-columns: 2.25rem 1fr;
-  gap: var(--space-2);
-  padding: var(--space-2) 0;
-  border-bottom: var(--line) solid var(--rule);
-  font-weight: 700;
+.skip {
+  position: absolute;
+  left: var(--space-2);
+  top: -4rem;
+  z-index: 100;
+  padding: var(--space-2) var(--space-3);
+  background: var(--ink);
+  color: var(--surface);
+  border-radius: var(--radius-sm);
 }
 
-.steps li::before {
-  content: counter(step);
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: var(--text-large);
-  line-height: 1.2;
+.skip:focus {
+  top: var(--space-2);
+}
+
+.lead {
+  color: var(--ink-2);
 }
 
 .fine {
-  margin-top: var(--space-3);
   color: var(--ink-2);
   font-size: var(--text-small);
 }
 
-.notice {
+/* ---- app shell ------------------------------------------------------------ */
+
+.app {
+  height: 100dvh; /* dvh: excludes the mobile browser's changing address bar */
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--bar-h);
+  padding: 0 var(--space-2);
+  padding-top: env(safe-area-inset-top);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar__title {
+  flex: 1;
+  font-size: var(--text-large);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.icon-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  cursor: pointer;
+}
+
+.icon-button:active {
+  background: var(--surface-sunken);
+}
+
+/* "Something needs your attention in the menu" (install is available). */
+.dot {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--alert);
+  border: 2px solid var(--surface);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
   gap: var(--space-1);
-  margin-bottom: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  background: var(--paper-raised);
-  border: var(--line) solid var(--rule);
+  min-height: 2.25rem;
+  padding: 0 0.75rem;
+  border-radius: 999px;
+  font-size: var(--text-small);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pill .icon {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.pill--ok {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.pill--wait {
+  background: var(--surface-sunken);
+  color: var(--ink-2);
+}
+
+.pill--bad {
+  background: var(--caution);
+  color: var(--caution-ink);
+}
+
+.app__body {
+  position: relative;
+  min-height: 0;
+  display: flex;
+}
+
+.app__main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Bottom navigation: on a phone the thumb rests here. */
+.bottomnav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.app--task .bottomnav {
+  display: none; /* a task (camera, result) gets the whole screen */
+}
+
+.bottomnav__link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: var(--nav-h);
+  border: 0;
+  border-top: 3px solid transparent;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bottomnav__link[aria-current='page'] {
+  color: var(--brand);
+  border-top-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+/* ---- menu (burger on phones, permanent sidebar on wide screens) ---------- */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  width: min(20rem, 88vw);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-3);
+  padding-top: max(var(--space-3), env(safe-area-inset-top));
+  padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
+  padding-left: max(var(--space-3), env(safe-area-inset-left));
+  overflow-y: auto;
+  background: var(--surface);
+  transform: translateX(-100%);
+  visibility: hidden; /* closed menu must not be reachable by keyboard */
+  transition: transform var(--ease), visibility var(--ease);
+}
+
+.sidebar.is-open {
+  transform: none;
+  visibility: visible;
+  box-shadow: var(--shadow-overlay);
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: var(--scrim);
+}
+
+.sidebar__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar__brand {
+  font-size: var(--text-large);
   font-weight: 700;
 }
 
-.notice--error {
-  background: var(--alert-bg);
-  border-color: var(--alert);
+.sidebar__nav {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-1);
 }
 
-.notice progress {
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   width: 100%;
-  height: 0.9rem;
-  accent-color: var(--field);
+  min-height: var(--tap);
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
 }
 
-/* ---- buttons ---------------------------------------------------------- */
+.sidebar__link[aria-current='page'] {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.sidebar__link:active {
+  background: var(--surface-sunken);
+}
+
+.sidebar__section {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+
+.sidebar__foot {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: auto;
+}
+
+.sidebar__vet {
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  background: var(--alert-soft);
+  font-size: var(--text-small);
+  line-height: 1.35;
+}
+
+.sidebar__vet strong {
+  color: var(--alert);
+}
+
+.privacy {
+  display: flex;
+  gap: var(--space-2);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+/* Setting: what part of the photo the model analyses */
+.setting {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.setting legend {
+  padding: 0;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-large);
+  font-weight: 700;
+  float: left;
+  width: 100%;
+}
+
+.setting__option {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr;
+  gap: var(--space-2);
+  align-items: start;
+  min-height: var(--tap);
+  padding: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  clear: both;
+}
+
+.setting__option:has(input:checked) {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.setting__option input {
+  width: 1.4rem;
+  height: 1.4rem;
+  margin: 0.1rem 0 0;
+  accent-color: var(--brand);
+}
+
+.setting__help {
+  display: block;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: 400;
+}
+
+/* ---- buttons -------------------------------------------------------------- */
 
 .actions {
   display: grid;
   gap: var(--space-2);
+  margin-top: auto; /* sits at the bottom of the screen, under the thumb */
+  /* Stays visible even when the content above is taller than the screen. */
+  position: sticky;
+  bottom: 0;
+  padding-block: var(--space-2);
+  background: var(--bg);
 }
 
 .button {
@@ -189,54 +434,281 @@ p {
   width: 100%;
   min-height: var(--tap);
   padding: var(--space-2) var(--space-3);
-  border: var(--line) solid var(--rule);
+  border: 1px solid transparent;
   border-radius: var(--radius);
-  background: var(--paper-raised);
-  color: var(--ink);
-  font: inherit;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  transition: transform var(--ease), background var(--ease);
+  transition: background var(--ease), transform var(--ease);
 }
 
 .button:active:not(:disabled) {
-  transform: translateY(2px);
+  transform: scale(0.99);
 }
 
 .button:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .button--primary {
-  background: var(--field);
-  border-color: var(--field);
-  color: var(--ink-on-dark);
+  background: var(--brand);
+  color: var(--ink-on-brand);
 }
 
 .button--primary:active:not(:disabled) {
-  background: var(--field-pressed);
+  background: var(--brand-strong);
 }
 
-.button--caution {
-  background: var(--caution-bg);
-  border-color: var(--caution-ink);
-  color: var(--caution-ink);
+.button--secondary {
+  background: var(--surface);
+  border-color: var(--line-strong);
+}
+
+.button--secondary:active:not(:disabled) {
+  background: var(--surface-sunken);
 }
 
 .button--quiet {
   background: transparent;
-  border-color: transparent;
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
+  color: var(--ink);
+}
+
+.button--quiet:active:not(:disabled) {
+  background: var(--surface-sunken);
+}
+
+.button--caution {
+  background: var(--caution);
+  color: var(--caution-ink);
+  border-color: var(--caution-line);
+}
+
+.button--danger {
+  background: var(--alert);
+  color: var(--ink-on-brand);
+}
+
+.button--danger-quiet {
+  background: transparent;
+  color: var(--alert);
+  border-color: var(--alert);
 }
 
 .button--big {
-  min-height: 4.25rem;
+  min-height: 3.75rem;
   font-size: var(--text-large);
 }
 
-/* ---- capture and review ----------------------------------------------- */
+.button--compact {
+  width: auto;
+  min-height: var(--tap-min);
+  padding-inline: var(--space-3);
+}
+
+/* Text-style button, still with a 48px touch area. */
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--tap-min);
+  padding: 0 var(--space-1);
+  border: 0;
+  background: transparent;
+  color: var(--brand);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.link--back {
+  align-self: flex-start;
+  text-decoration: none;
+  margin-left: calc(-1 * var(--space-1));
+}
+
+/* ---- screens -------------------------------------------------------------- */
+
+.screen {
+  width: 100%;
+  min-height: 100%;
+  max-width: 42rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--gutter);
+}
+
+.screen--task {
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+.idle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: var(--space-2);
+  align-items: start;
+}
+
+.steps li::before {
+  content: counter(step);
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-weight: 700;
+}
+
+/* Status messages and notices */
+.callout {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: var(--text-small);
+}
+
+.callout > .icon {
+  margin-top: 0.1rem;
+}
+
+.callout__grow {
+  flex: 1;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.callout__meta {
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.callout--ok {
+  background: var(--brand-soft);
+  border-color: transparent;
+  color: var(--ink);
+}
+
+.callout--ok > .icon {
+  color: var(--brand);
+}
+
+.callout--caution {
+  background: var(--caution);
+  border-color: var(--caution-line);
+  color: var(--caution-ink);
+}
+
+.callout--alert {
+  background: var(--alert-soft);
+  border-color: var(--alert);
+}
+
+.callout--alert > .icon {
+  color: var(--alert);
+}
+
+progress {
+  width: 100%;
+  height: 0.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+  appearance: none;
+}
+
+progress::-webkit-progress-bar {
+  background: var(--surface-sunken);
+}
+
+progress::-webkit-progress-value {
+  background: var(--brand);
+  border-radius: 999px;
+}
+
+progress::-moz-progress-bar {
+  background: var(--brand);
+}
+
+/* Install */
+.install {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--brand);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.install__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--brand);
+}
+
+.install__steps {
+  padding-left: 1.25rem;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.install-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--brand-soft);
+}
+
+.install-banner > .icon {
+  color: var(--brand);
+}
+
+.install-banner > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.install-banner__title {
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.install-banner__sub {
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+/* ---- capture and review -------------------------------------------------- */
 
 .capture {
   flex: 1;
@@ -248,10 +720,7 @@ p {
 
 .capture--fallback {
   gap: var(--space-3);
-}
-
-.capture--fallback h2 {
-  font-size: var(--text-title);
+  justify-content: center;
 }
 
 /* The box holding the video or photo. */
@@ -260,8 +729,8 @@ p {
   flex: 1;
   min-height: 14rem;
   overflow: hidden;
+  border-radius: var(--radius);
   background: var(--camera);
-  border: var(--line) solid var(--rule);
 }
 
 .frame__media {
@@ -278,8 +747,8 @@ p {
   inset: 0;
   display: grid;
   place-items: center;
-  color: var(--ink-on-dark);
-  font-weight: 700;
+  color: var(--surface);
+  font-weight: 600;
 }
 
 /* The square the model actually sees. The huge shadow dims everything outside. */
@@ -288,90 +757,55 @@ p {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  border: 4px solid #fff;
-  outline: 2px solid rgb(0 0 0 / 65%);
-  box-shadow: 0 0 0 100vmax rgb(15 18 16 / 55%);
+  border: 3px solid var(--surface);
+  border-radius: 4px;
+  outline: 1px solid var(--camera);
+  box-shadow: 0 0 0 100vmax var(--dim);
   pointer-events: none;
   transition: border-color var(--ease);
 }
 
 .frame__guide--ok {
-  border-color: var(--field-glow);
+  border-color: var(--ok-on-camera);
 }
 
 .frame__guide--bad {
-  border-color: var(--caution-bg);
+  border-color: var(--caution-line);
 }
 
 .frame__tag {
   position: absolute;
-  top: 0;
+  top: 0.4rem;
+  left: 0.4rem;
+  max-width: calc(100% - 0.8rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--camera);
+  color: var(--surface);
+  font-size: var(--text-small);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Tuning readout (only with ?debug): overlaid so it never changes the layout. */
+.frame__debug {
+  position: absolute;
   left: 0;
-  padding: 0.15rem 0.5rem;
-  background: var(--ink);
-  color: var(--ink-on-dark);
-  font-size: var(--text-small);
-  font-weight: 700;
-}
-
-/* Quality checklist */
-.checks__list {
+  right: 0;
+  bottom: 0;
   margin: 0;
-  padding: 0;
-  list-style: none;
-  border: var(--line) solid var(--rule);
-  background: var(--paper-raised);
+  padding: 0.2rem 0.4rem;
+  background: var(--dim);
+  color: var(--surface);
+  font-size: 0.75rem;
+  white-space: pre-wrap;
 }
 
-.checks__row {
-  display: grid;
-  grid-template-columns: 1.5rem 1fr;
-  gap: var(--space-2);
-  align-items: start;
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--text-small);
-  font-weight: 700;
-}
-
-.checks__row + .checks__row {
-  border-top: 1px solid var(--rule-soft);
-}
-
-.checks__row--ok {
-  color: var(--field);
-}
-
-.checks__row--bad {
-  background: var(--caution-bg);
-  color: var(--caution-ink);
-}
-
-.checks__row--wait {
-  color: var(--ink-2);
-}
-
-.checks__label {
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-right: 0.35rem;
-}
-
-.checks__debug {
-  margin: var(--space-1) 0 0;
-  padding: var(--space-1) var(--space-2);
-  background: var(--ink);
-  color: var(--ink-on-dark);
-  font-size: var(--text-small);
-}
-
-.capture__controls {
+.capture__panel {
   display: grid;
   gap: var(--space-2);
-}
-
-.capture__hint {
-  font-size: var(--text-small);
-  font-weight: 700;
 }
 
 .capture__secondary {
@@ -380,64 +814,596 @@ p {
   gap: var(--space-2);
 }
 
-/* ---- result (temporary; restyled in the results increment) ------------ */
-
-.result {
-  background: var(--paper-raised);
-  border: var(--line) solid var(--rule);
-  border-left-width: 8px;
-  padding: var(--space-3);
-  display: grid;
-  gap: var(--space-2);
+.capture__secondary .button {
+  min-height: var(--tap-min);
+  white-space: nowrap;
 }
 
-.result--uncertain {
-  border-left-color: var(--caution-line);
-  background: var(--caution-bg);
+/* Quality status: three chips and one line of advice */
+.checks__chips {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-1);
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-width: 0;
+  min-height: var(--tap-min);
+  padding: 0 0.25rem;
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+  font-size: var(--text-small);
+  font-weight: 600;
+}
+
+.chip--ok {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.chip--bad {
+  background: var(--caution);
   color: var(--caution-ink);
 }
 
-.result h2 {
+.chip--wait {
+  color: var(--ink-2);
+}
+
+.checks__message {
+  margin-top: var(--space-1);
+  min-height: 3rem; /* fits two lines, so the layout does not jump */
+  font-size: var(--text-small);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.checks__message--bad {
+  color: var(--caution-ink);
+}
+
+/* ---- result ---------------------------------------------------------------- */
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.result h3 {
+  margin-bottom: var(--space-2);
+  font-size: var(--text-large);
+}
+
+.verdict {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.verdict h2 {
   font-size: var(--text-title);
 }
 
-.result__confidence {
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+.verdict--unsure {
+  background: var(--caution);
+  border-color: var(--caution-line);
+  color: var(--caution-ink);
 }
 
-.breakdown h3 {
-  margin-bottom: var(--space-2);
-  font-family: var(--font-body);
+.badge {
+  justify-self: start;
+  padding: 0.1rem 0.7rem;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand);
   font-size: var(--text-small);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-weight: 600;
 }
 
-.breakdown__row {
-  display: grid;
-  grid-template-columns: 8.5rem 1fr 4rem;
-  align-items: center;
+.verdict--unsure .badge {
+  background: var(--surface);
+  color: var(--caution-ink);
+}
+
+.verdict__figure {
+  display: flex;
+  align-items: baseline;
   gap: var(--space-2);
-  margin-bottom: var(--space-1);
+  font-weight: 600;
+}
+
+.numeral {
+  font-size: var(--text-display);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.photo {
+  margin: 0;
+}
+
+.photo__frame {
+  position: relative;
+  width: 100%;
+  max-width: 28rem;
+  min-height: 8rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--camera);
+}
+
+.photo__frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Outlines the centre square when only that part was analysed; dims the rest. */
+.photo__square {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 3px solid var(--surface);
+  box-shadow: 0 0 0 100vmax var(--dim);
+  pointer-events: none;
+}
+
+.photo figcaption {
+  margin-top: var(--space-1);
+  max-width: 28rem;
+  color: var(--ink-2);
   font-size: var(--text-small);
+}
+
+.scores__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.score {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.35rem var(--space-2);
+  font-weight: 500;
+}
+
+.score--top {
   font-weight: 700;
 }
 
-.breakdown__bar {
+.score__tag {
   display: block;
-  height: 0.9rem;
-  background: var(--paper);
-  border: var(--line) solid var(--rule);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: 400;
 }
 
-.breakdown__bar > span {
+.score__value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.score__bar {
+  position: relative;
+  grid-column: 1 / -1;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+}
+
+.score__fill {
   display: block;
   height: 100%;
+  border-radius: 999px;
   background: var(--ink);
 }
 
-.breakdown__value {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
+/* The confidence the app needs before it will name a result (from calibration.json). */
+.score__tick {
+  position: absolute;
+  top: -0.3rem;
+  bottom: -0.3rem;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--alert);
+  transform: translateX(-1px);
+}
+
+.scores .fine {
+  margin-top: var(--space-2);
+}
+
+.next ul {
+  padding-left: 1.25rem;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.next .fine {
+  margin-top: var(--space-3);
+}
+
+.referral {
+  padding: var(--space-3);
+  border: 1px solid var(--alert);
+  border-radius: var(--radius);
+  background: var(--alert-soft);
+}
+
+.referral h3 {
+  margin-bottom: var(--space-1);
+  color: var(--alert);
+}
+
+.saved {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+/* Result actions stay at the bottom of the screen, under the thumb. */
+.dock {
+  position: sticky;
+  bottom: 0;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: var(--space-2) var(--gutter);
+  padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+
+.dock__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.dock__note {
+  margin-bottom: var(--space-1);
+  font-size: var(--text-small);
+  font-weight: 600;
+}
+
+/* ---- history ---------------------------------------------------------------- */
+
+.filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.filters label {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-small);
+  font-weight: 600;
+}
+
+.filters select {
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.count {
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 4rem 1fr auto;
+  gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  min-height: 5.25rem;
+  padding: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:active {
+  background: var(--surface-sunken);
+}
+
+.row__thumb {
+  width: 4rem;
+  height: 4rem;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--camera);
+}
+
+.row__text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.row__title {
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.row__sub,
+.row__when {
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+.empty {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  padding: var(--space-4) 0;
+  color: var(--ink-2);
+}
+
+.empty h2 {
+  color: var(--ink);
+}
+
+.manage {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.manage summary,
+.accordion summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding: 0 var(--space-3);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.manage summary::-webkit-details-marker,
+.accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.manage summary::after,
+.accordion summary::after {
+  content: '';
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-left: auto;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform var(--ease);
+}
+
+.manage[open] > summary::after,
+.accordion details[open] > summary::after {
+  transform: rotate(-135deg);
+}
+
+.manage__body {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.manage__body hr {
+  width: 100%;
+  margin: var(--space-2) 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+/* Confirmation dialog (built-in <dialog>) */
+.dialog {
+  width: min(24rem, calc(100vw - 2rem));
+  padding: var(--space-4);
+  border: 0;
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-overlay);
+}
+
+.dialog::backdrop {
+  background: var(--scrim);
+}
+
+.dialog__body {
+  margin: var(--space-2) 0 var(--space-3);
+  color: var(--ink-2);
+}
+
+.dialog__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+/* Brief confirmation with Undo */
+.toast {
+  position: fixed;
+  left: max(var(--gutter), env(safe-area-inset-left));
+  right: max(var(--gutter), env(safe-area-inset-right));
+  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + var(--space-2));
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--ink);
+  color: var(--surface);
+  box-shadow: var(--shadow-overlay);
+}
+
+.app--task .toast {
+  bottom: calc(env(safe-area-inset-bottom) + var(--space-2));
+}
+
+.toast__action {
+  min-height: var(--tap-min);
+  padding: 0 var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--surface);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+/* ---- help ------------------------------------------------------------------- */
+
+.accordion {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.accordion details {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.accordion details > :not(summary) {
+  margin: 0 var(--space-3) var(--space-3);
+}
+
+.accordion details > ol,
+.accordion details > ul {
+  padding-left: 1.25rem;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.accordion details > p + p {
+  margin-top: calc(-1 * var(--space-1));
+}
+
+/* ---- landscape phones and other short, wide windows --------------------------- */
+
+@media (orientation: landscape) and (max-height: 32rem) {
+  :root {
+    --bar-h: 3rem;
+  }
+
+  .screen--task {
+    max-width: none;
+  }
+}
+
+/* Camera and review: preview on the left, status and buttons on the right. */
+@media (orientation: landscape) and (min-width: 36rem) {
+  .capture:not(.capture--fallback) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 20rem);
+    gap: var(--space-3);
+  }
+
+  .capture:not(.capture--fallback) .frame {
+    min-height: 0;
+  }
+
+  .capture:not(.capture--fallback) .capture__panel {
+    align-self: end;
+  }
+
+  .checks__message {
+    min-height: 0;
+  }
+}
+
+/* ---- tablets ------------------------------------------------------------------ */
+
+@media (min-width: 48rem) {
+  :root {
+    --gutter: 1.5rem;
+  }
+
+  .screen {
+    padding-top: var(--space-5);
+  }
+
+  .actions {
+    margin-top: var(--space-2);
+    position: static;
+  }
+}
+
+/* ---- laptops and desktops: the menu becomes a permanent sidebar -------------- */
+
+@media (min-width: 64rem) {
+  .topbar__menu,
+  .sidebar__close,
+  .sidebar__head,
+  .bottomnav,
+  .scrim {
+    display: none !important;
+  }
+
+  .app--task .toast,
+  .toast {
+    bottom: var(--space-3);
+  }
+
+  .app__body {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  }
+
+  .sidebar {
+    position: static;
+    width: auto;
+    transform: none;
+    visibility: visible;
+    box-shadow: none;
+    border-right: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  .screen {
+    max-width: 46rem;
+  }
+
+  .screen--task {
+    max-width: 60rem;
+  }
 }
