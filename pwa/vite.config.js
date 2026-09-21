@@ -33,7 +33,7 @@ export default defineConfig({
       },
       workbox: {
         // The weight shards are a few MB each; Workbox skips large files by default.
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,json,bin}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,json,bin,woff2}'],
         maximumFileSizeToCacheInBytes: 30 * 1024 * 1024,
         runtimeCaching: [
           {

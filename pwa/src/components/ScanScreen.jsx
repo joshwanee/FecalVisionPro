@@ -1,165 +1,176 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { classify, getClassNames, loadModel } from '../lib/fecalvision';
+import { belowThreshold, classify, loadModel } from '../lib/fecalvision';
+import CaptureView from './CaptureView';
+import ReviewView from './ReviewView';
+import { CameraIcon, ImageIcon } from './icons';
 
 /**
- * FecalVision - scan screen.
+ * FecalVision - scan flow.
  *
- * Capture or pick a photo, run it through the local model, show the result.
- * Everything runs in the browser; nothing is uploaded.
+ * One screen that moves through five phases:
+ *   idle       -> instructions and the two ways to start
+ *   capturing  -> live camera with framing guide and quality checks
+ *   reviewing  -> look at the photo, retake or analyse
+ *   analysing  -> the model is running (a fraction of a second)
+ *   result     -> what the model found
  *
- * Deliberate choices:
- *  - the model preloads on mount so the first scan is not the slow one
- *  - the full probability breakdown is always visible, not hidden behind a tap
- *  - a low-confidence result is shown as a refusal to guess, not as a weak guess
- *  - the veterinary referral line is permanent, not conditional
+ * Everything runs on this device; nothing is uploaded.
  */
 export default function ScanScreen() {
-  const [status, setStatus] = useState('loading'); // loading | ready | scanning | error
-  const [progress, setProgress] = useState(0);
-  const [preview, setPreview] = useState(null);
+  const [phase, setPhase] = useState('idle');
+  const [model, setModel] = useState({ status: 'loading', progress: 0, error: null });
+  const [photoUrl, setPhotoUrl] = useState(null); // object URL of the current photo
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [online, setOnline] = useState(navigator.onLine);
-
-  const imgRef = useRef(null);
   const fileRef = useRef(null);
-  const objectUrlRef = useRef(null);
 
+  // Start loading the model straight away so the first scan is not the slow one.
   useEffect(() => {
-    let cancelled = false;
-    loadModel({ onProgress: (p) => !cancelled && setProgress(p) })
-      .then(() => !cancelled && setStatus('ready'))
-      .catch((e) => {
-        if (cancelled) return;
-        setError(`The analysis model could not be loaded: ${e.message}`);
-        setStatus('error');
-      });
-    return () => {
-      cancelled = true;
-      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
-    };
+    loadModel({ onProgress: (p) => setModel((m) => ({ ...m, progress: p })) })
+      .then(() => setModel((m) => ({ ...m, status: 'ready', progress: 1 })))
+      .catch((e) => setModel((m) => ({ ...m, status: 'error', error: e.message })));
   }, []);
 
+  // An object URL holds the photo in memory until it is revoked, so release
+  // the old one whenever the photo changes or the screen closes.
   useEffect(() => {
-    const on = () => setOnline(true);
-    const off = () => setOnline(false);
-    window.addEventListener('online', on);
-    window.addEventListener('offline', off);
     return () => {
-      window.removeEventListener('online', on);
-      window.removeEventListener('offline', off);
+      if (photoUrl) URL.revokeObjectURL(photoUrl);
     };
-  }, []);
+  }, [photoUrl]);
 
-  const handleFile = useCallback((event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
-    objectUrlRef.current = URL.createObjectURL(file);
+  const setPhoto = useCallback((blob) => {
     setResult(null);
     setError(null);
-    setPreview(objectUrlRef.current);
+    setPhotoUrl(URL.createObjectURL(blob));
+    setPhase('reviewing');
   }, []);
 
-  const runAnalysis = useCallback(async () => {
-    if (!imgRef.current || !imgRef.current.complete) return;
-    setStatus('scanning');
-    setError(null);
-    try {
-      setResult(await classify(imgRef.current));
-      setStatus('ready');
-    } catch (e) {
-      setError(`Analysis failed: ${e.message}`);
-      setStatus('ready');
-    }
-  }, []);
+  const handleFile = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = ''; // allow picking the same file again later
+    if (file) setPhoto(file);
+  };
 
   const reset = () => {
     setResult(null);
-    setPreview(null);
     setError(null);
-    if (fileRef.current) fileRef.current.value = '';
+    setPhotoUrl(null);
+    setPhase('idle');
   };
 
+  const analyse = async (imgElement) => {
+    if (!imgElement?.complete) return;
+    setPhase('analysing');
+    setError(null);
+    try {
+      setResult(await classify(imgElement));
+      setPhase('result');
+    } catch (e) {
+      setError(`Analysis failed: ${e.message}`);
+      setPhase('reviewing');
+    }
+  };
+
+  const modelReady = model.status === 'ready';
+
   return (
-    <main className="scan">
-      <header className="scan__header">
-        <h1>Check a dropping</h1>
-        <p>
-          Photograph a single fresh dropping against the litter, then run the check.
-          The analysis happens on this device{online ? '' : ' — you are offline, which is fine'}.
-        </p>
-      </header>
+    <div className="scan">
+      {/* One hidden file input, opened by real buttons so keyboard users can reach it. */}
+      <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} hidden />
 
-      {status === 'loading' && (
-        <p role="status" className="scan__status">
-          Preparing the on-device model… {Math.round(progress * 100)}%
-        </p>
+      {phase === 'idle' && (
+        <section aria-labelledby="scan-title">
+          <h1 id="scan-title">Check a dropping</h1>
+          <ol className="steps">
+            <li>Use daylight. Avoid shadow and direct glare.</li>
+            <li>Get close: one dropping should fill the square.</li>
+            <li>Hold steady until every check turns green.</li>
+          </ol>
+
+          <ModelStatus model={model} />
+
+          <div className="actions">
+            <button
+              type="button"
+              className="button button--big button--primary"
+              onClick={() => setPhase('capturing')}
+            >
+              <CameraIcon /> Open camera
+            </button>
+            <button type="button" className="button" onClick={() => fileRef.current?.click()}>
+              <ImageIcon /> Choose a photo
+            </button>
+          </div>
+          <p className="fine">The photo is analysed on this phone. It is never uploaded.</p>
+        </section>
       )}
 
-      {status === 'error' && <p className="scan__error">{error}</p>}
+      {phase === 'capturing' && (
+        <CaptureView
+          onCapture={setPhoto}
+          onPickFile={() => fileRef.current?.click()}
+          onCancel={reset}
+        />
+      )}
 
-      <div className="scan__actions">
-        <label className="button button--primary">
-          Take a photo
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleFile}
-            hidden
+      {(phase === 'reviewing' || phase === 'analysing') && photoUrl && (
+        <>
+          {error && (
+            <p className="notice notice--error" role="alert">
+              {error}
+            </p>
+          )}
+          <ReviewView
+            url={photoUrl}
+            busy={phase === 'analysing'}
+            modelReady={modelReady}
+            onAnalyse={analyse}
+            onRetake={() => setPhase('capturing')}
           />
-        </label>
-        <label className="button">
-          Choose from gallery
-          <input type="file" accept="image/*" onChange={handleFile} hidden />
-        </label>
-      </div>
-
-      {preview && (
-        <figure className="scan__preview">
-          <img ref={imgRef} src={preview} alt="Dropping to be analysed" onLoad={runAnalysis} />
-          <figcaption>
-            {status === 'scanning' ? 'Analysing…' : result ? `${result.latencyMs} ms on this device` : ''}
-          </figcaption>
-        </figure>
+        </>
       )}
 
-      {error && status !== 'error' && <p className="scan__error">{error}</p>}
-
-      {result && <Result result={result} onRetake={reset} />}
-
-      <footer className="scan__footer">
-        <p>
-          FecalVision screens photographs for visual signs associated with three common
-          poultry conditions. It does not diagnose disease. Confirm any result with a
-          veterinarian or your local agriculture office before treating birds.
-        </p>
-      </footer>
-    </main>
+      {phase === 'result' && result && <Result result={result} onRetake={reset} />}
+    </div>
   );
 }
 
-function Result({ result, onRetake }) {
-  const { label, confidence, lowConfidence, ranked, advice, threshold } = result;
+/** Real download progress for the ~4.6 MB model, plus a clear error if it fails. */
+function ModelStatus({ model }) {
+  if (model.status === 'ready') return null;
+  if (model.status === 'error') {
+    return (
+      <p className="notice notice--error" role="alert">
+        The analysis model could not be loaded. {model.error}
+      </p>
+    );
+  }
+  const pct = Math.round(model.progress * 100);
+  return (
+    <div className="notice" role="status">
+      <label htmlFor="model-progress">Preparing the on-device model… {pct}%</label>
+      <progress id="model-progress" max="100" value={pct} />
+    </div>
+  );
+}
 
-  if (lowConfidence) {
+/* ---- Temporary result view: replaced by ResultPanel in the next increment ---- */
+
+function Result({ result, onRetake }) {
+  const { label, confidence, ranked, advice, threshold } = result;
+
+  // Use the validated threshold rule only (see belowThreshold in fecalvision.js).
+  if (belowThreshold(result)) {
     return (
       <section className="result result--uncertain" aria-live="polite">
         <h2>Not clear enough to call</h2>
         <p>
-          The closest match was {label} at {(confidence * 100).toFixed(0)}% confidence,
-          below the {(threshold * 100).toFixed(0)}% the app requires before reporting a result.
+          The closest match was {label} at {(confidence * 100).toFixed(0)}% confidence, below the{' '}
+          {(threshold * 100).toFixed(0)}% the app requires before reporting a result.
         </p>
-        <ul>
-          <li>Retake the photo in daylight, without shadow across the dropping.</li>
-          <li>Fill the frame with one dropping; move closer rather than zooming.</li>
-          <li>Use a fresh sample — dried droppings lose the colour the model relies on.</li>
-        </ul>
-        <p>If repeated photos stay unclear and the birds look unwell, consult a veterinarian.</p>
         <Breakdown ranked={ranked} />
-        <button className="button" onClick={onRetake}>
+        <button type="button" className="button" onClick={onRetake}>
           Take another photo
         </button>
       </section>
@@ -172,7 +183,7 @@ function Result({ result, onRetake }) {
       <p className="result__confidence">{(confidence * 100).toFixed(1)}% confidence</p>
       {advice && <p>{advice}</p>}
       <Breakdown ranked={ranked} />
-      <button className="button" onClick={onRetake}>
+      <button type="button" className="button" onClick={onRetake}>
         Check another dropping
       </button>
     </section>
@@ -195,5 +206,3 @@ function Breakdown({ ranked }) {
     </div>
   );
 }
-
-export { getClassNames };

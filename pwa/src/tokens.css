@@ -1,0 +1,85 @@
+/*
+ * FecalVision design tokens.
+ *
+ * Every colour, size and font used by the app is defined once, here, and the
+ * rest of the CSS refers to these names. Nothing else should contain a raw hex
+ * value. Change a token and the whole app follows.
+ *
+ * Direction: a farm ledger / feed-sack label. Warm bone paper, soil-brown ink,
+ * heavy rules, big numerals. Made for bright sun, so text contrast is well above
+ * the WCAG AA minimum (4.5:1). Approximate contrast ratios are noted beside
+ * each pairing.
+ */
+
+:root {
+  /* ---- surfaces -------------------------------------------------------- */
+  --paper: #f3eee2;         /* page background */
+  --paper-raised: #fbf8f0;  /* panels sitting on the page */
+  --camera: #0f1210;        /* behind the camera preview */
+
+  /* ---- ink (text) ------------------------------------------------------ */
+  --ink: #1e1a14;           /* on --paper: ~15:1 */
+  --ink-2: #4a4136;         /* secondary text on --paper: ~8.7:1 */
+  --ink-on-dark: #f6f2e8;   /* on --field: ~9:1 */
+
+  /* ---- brand and actions ---------------------------------------------- */
+  --field: #1f4d2e;         /* primary action, header. White text on it: ~9.5:1 */
+  --field-pressed: #143820;
+  --field-glow: #8fdc9f;    /* "good" guide outline over the camera image */
+
+  /* ---- states ---------------------------------------------------------- */
+  --caution-bg: #f5d27a;    /* uncertain / needs attention (ink on it: ~10:1) */
+  --caution-ink: #4a3000;   /* on --caution-bg: ~8:1 */
+  --caution-line: #a26c00;  /* decorative borders only, never text */
+  --alert: #9c2b1b;         /* veterinary referral. White text on it: ~7.5:1 */
+  --alert-bg: #f7dfd8;      /* pale alert surface, ink on it: ~12:1 */
+
+  /* ---- lines ----------------------------------------------------------- */
+  --rule: #1e1a14;          /* structural rules */
+  --rule-soft: #b9ae98;     /* decorative only, never the sole carrier of meaning */
+  --focus: #0b5cad;         /* keyboard focus ring: ~6:1 on paper */
+
+  /* ---- type ------------------------------------------------------------ */
+  /* Bitter: a sturdy slab serif, like ledger and feed-sack lettering.
+     Atkinson Hyperlegible: designed for low-vision legibility, which helps
+     when reading a screen in glare. Both are bundled (work offline). */
+  --font-display: 'Bitter', Georgia, 'Times New Roman', serif;
+  --font-body: 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --text-base: 1.125rem;    /* 18px body: comfortable at arm's length */
+  --text-small: 1rem;       /* 16px is the smallest text in the app */
+  --text-large: 1.375rem;
+  --text-title: 2rem;
+  --text-numeral: 3rem;
+
+  /* ---- space, size, shape --------------------------------------------- */
+  --space-1: 0.375rem;
+  --space-2: 0.75rem;
+  --space-3: 1.125rem;
+  --space-4: 1.75rem;
+  --space-5: 2.5rem;
+
+  --tap: 3.5rem;            /* minimum touch target height (56px) */
+  --gutter: 1.125rem;
+  --line: 2px;
+  --radius: 4px;            /* squarer than a phone-app default, on purpose */
+
+  /* ---- motion ---------------------------------------------------------- */
+  --ease: 120ms ease-out;
+}
+
+/* Users who ask their device for less motion get none of ours. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ease: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

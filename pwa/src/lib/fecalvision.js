@@ -27,9 +27,10 @@ const CALIBRATION_URL = `${MODEL_DIR}/calibration.json`;
 const IDB_KEY = `indexeddb://fecalvision-${MODEL_DIR.slice(1)}`;
 const INPUT_SIZE = 224;
 
-/** Fallbacks if the metadata files are missing; the JSON always wins. */
-const DEFAULT_CLASSES = ['Coccidiosis', 'Healthy', 'Newcastle Disease', 'Salmonella'];
-const DEFAULT_CALIBRATION = { temperature: 1.0, confidence_threshold: 0.6 };
+// There are deliberately NO default class names or calibration values here.
+// Both come from the JSON files in public/model/ (fitted on the validation
+// split). If they cannot be read, loadModel() fails loudly rather than quietly
+// running with numbers that do not match the documented results.
 
 const ADVICE = {
   Coccidiosis:
@@ -43,7 +44,7 @@ const ADVICE = {
 };
 
 let modelPromise = null;
-let meta = { classes: DEFAULT_CLASSES, calibration: DEFAULT_CALIBRATION };
+let meta = { classes: [], calibration: null };
 
 async function fetchJSON(url, fallback) {
   try {
@@ -68,17 +69,22 @@ export async function loadModel({ onProgress } = {}) {
       fetchJSON(CALIBRATION_URL, null),
     ]);
 
-    if (classJson?.index_to_class) {
-      meta.classes = Object.keys(classJson.index_to_class)
-        .sort((a, b) => Number(a) - Number(b))
-        .map((k) => classJson.index_to_class[k]);
+    // Guard: refuse to run without valid metadata (see comment at the top).
+    // A hosting rewrite that serves index.html for a missing file also lands
+    // here, because HTML is not valid JSON and fetchJSON returns null.
+    if (!classJson?.index_to_class) {
+      throw new Error('class_names.json is missing or invalid, so results cannot be labelled.');
     }
-    if (calJson) {
-      meta.calibration = {
-        temperature: calJson.temperature ?? 1.0,
-        confidence_threshold: calJson.confidence_threshold ?? 0.6,
-      };
+    const T = calJson?.temperature;
+    const thr = calJson?.confidence_threshold;
+    if (!(T > 0) || !(thr > 0 && thr < 1)) {
+      throw new Error('calibration.json is missing or invalid, so results cannot be calibrated.');
     }
+
+    meta.classes = Object.keys(classJson.index_to_class)
+      .sort((a, b) => Number(a) - Number(b))
+      .map((k) => classJson.index_to_class[k]);
+    meta.calibration = { temperature: T, confidence_threshold: thr };
 
     await tf.ready();
 
@@ -188,6 +194,23 @@ export function isModelReady() {
 
 export function getClassNames() {
   return [...meta.classes];
+}
+
+/** The calibration loaded from calibration.json (null until the model loads). */
+export function getCalibration() {
+  return meta.calibration ? { ...meta.calibration } : null;
+}
+
+/**
+ * True when the top probability is below the validation-fitted threshold.
+ * This is the ONLY abstention rule your documented results (89.6% answered,
+ * 98.6% accurate) were measured with. classify()'s own `lowConfidence` flag
+ * also abstains on a close margin (< 0.15), which was not validated, so the UI
+ * uses this helper for the "not clear enough" decision and shows a close margin
+ * separately as a runner-up notice.
+ */
+export function belowThreshold(result) {
+  return result.confidence < result.threshold;
 }
 
 /** Drop the cached weights - useful when you ship a retrained model. */
