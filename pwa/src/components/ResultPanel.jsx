@@ -22,11 +22,12 @@ const pct = (p, digits = 0) => `${(p * 100).toFixed(digits)}%`;
  * extra        : optional node shown above the buttons (saved note, delete...)
  */
 export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
-  const { result, photoUrl, photoBlob, inputMode, quality, timestamp } = scan;
+  const { result, photoUrl, photoBlob, inputMode, quality, timestamp, details } = scan;
   const [aspect, setAspect] = useState(null); // photo width / height, known once it loads
   const headingRef = useRef(null);
   const [reportBlob, setReportBlob] = useState(null);
   const [shareNote, setShareNote] = useState('');
+  const [copied, setCopied] = useState(false);
 
   // The validated rule only: below the threshold from calibration.json.
   const uncertain = belowThreshold(result);
@@ -208,6 +209,33 @@ export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
       <p className="fine">
         Analysed on this phone in {result.latencyMs} ms &middot; {new Date(timestamp).toLocaleString()}
       </p>
+
+      {details && (
+        <details className="tech">
+          <summary>Technical details</summary>
+          <div className="tech__body">
+            <p className="fine">
+              If two devices give different answers for the same photo, compare these lines: the same
+              file, fingerprint and checksum mean the input and model match.
+            </p>
+            <pre>{details}</pre>
+            <button
+              type="button"
+              className="button button--secondary button--compact"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(details);
+                  setCopied(true);
+                } catch {
+                  setCopied(false);
+                }
+              }}
+            >
+              {copied ? 'Copied' : 'Copy details'}
+            </button>
+          </div>
+        </details>
+      )}
 
       {extra}
 

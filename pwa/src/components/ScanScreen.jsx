@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { makeStoredPhoto, prepareInput } from '../lib/analysisInput';
-import { classify } from '../lib/fecalvision';
+import { BUILD } from '../lib/buildInfo';
+import { classify, getCalibration, getRuntimeInfo } from '../lib/fecalvision';
 import { buildRecord, deleteScan, requestPersistence, saveScan } from '../lib/history';
 import CaptureView from './CaptureView';
 import ResultPanel from './ResultPanel';
@@ -89,7 +90,9 @@ export default function ScanScreen({
       // Build the model's input from the photo's real pixels (not from the
       // on-screen <img>, whose size depends on the layout). See analysisInput.js.
       const input = await prepareInput(photo.blob, inputMode);
-      const result = await classify(input);
+      const result = await classify(input.canvas);
+      const runtime = await getRuntimeInfo();
+      const calibration = getCalibration();
 
       // A small JPEG of the whole photo for History and sharing.
       const storedPhoto = await makeStoredPhoto(photo.blob);
@@ -101,6 +104,20 @@ export default function ScanScreen({
         timestamp: Date.now(),
         photoBlob: storedPhoto,
         photoUrl: photo.url,
+        // For the "Technical details" panel: everything that could make two
+        // devices disagree about the same photo.
+        details: [
+          `Build: ${BUILD}`,
+          `What the model analysed: ${inputMode === 'square' ? 'centre square' : 'whole photo'}`,
+          `File: ${input.details.fileBytes} bytes, ${input.details.fileType}`,
+          `Decoded photo: ${input.details.decoded} (${input.details.halvingSteps} halving steps)`,
+          `Model input fingerprint: ${input.details.hash}, average colour ${input.details.mean}`,
+          `Model: ${runtime.modelSource}, weights checksum ${runtime.weightsChecksum}`,
+          `Calculation: ${runtime.backend}${runtime.backend === 'webgl' ? (runtime.float32 ? ' (full precision)' : ' (half precision)') : ''}`,
+          `Calibration: temperature ${calibration.temperature.toFixed(2)}, threshold ${calibration.confidence_threshold}`,
+          `Scores: ${result.ranked.map((r) => `${r.label} ${(r.probability * 100).toFixed(1)}%`).join(', ')}`,
+          `Browser: ${navigator.userAgent}`,
+        ].join('\n'),
       };
       setScan(finished);
       setPhase('result');

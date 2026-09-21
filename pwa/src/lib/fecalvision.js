@@ -91,6 +91,8 @@ function fetchWithByteProgress(onProgress) {
 }
 
 let modelPromise = null;
+let modelSource = 'not loaded'; // for the technical details panel
+let runtimeInfo = null;
 let meta = { classes: [], calibration: null };
 
 async function fetchJSON(url, fallback) {
@@ -139,9 +141,11 @@ export async function loadModel({ onProgress, onStage } = {}) {
     onStage?.('checking'); // looking for a copy already saved on this phone
     try {
       model = await tf.loadGraphModel(IDB_KEY);
+      modelSource = 'loaded from the copy saved on this phone';
       onStage?.('cached');
     } catch {
       onStage?.('downloading'); // first launch: the real ~4.6 MB download
+      modelSource = 'downloaded this session';
       model = await tf.loadGraphModel(MODEL_URL, {
         fetchFunc: fetchWithByteProgress(onProgress),
       });
@@ -237,6 +241,30 @@ export async function classify(source) {
     advice: ADVICE[top.label] ?? '',
     latencyMs: Math.round(performance.now() - started),
   };
+}
+
+/**
+ * Facts about how the model is running, for the "technical details" panel.
+ * The weights checksum is the sum of every weight's absolute value: two devices
+ * running the same model file print the same number.
+ */
+export async function getRuntimeInfo() {
+  if (runtimeInfo) return runtimeInfo;
+  const model = await loadModel();
+  let sum = 0;
+  tf.tidy(() => {
+    for (const list of Object.values(model.weights)) {
+      for (const t of list) sum += t.abs().sum().dataSync()[0];
+    }
+  });
+  const backend = tf.getBackend();
+  runtimeInfo = {
+    backend,
+    float32: backend === 'webgl' ? tf.env().getBool('WEBGL_RENDER_FLOAT32_CAPABLE') : true,
+    modelSource,
+    weightsChecksum: sum.toFixed(3),
+  };
+  return runtimeInfo;
 }
 
 export function isModelReady() {

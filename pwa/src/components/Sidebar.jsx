@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { InstallPanel, ModelStatus, PrivacyNote } from './StatusPanels';
 import { INPUT_MODES } from '../lib/analysisInput';
+import { BUILD } from '../lib/buildInfo';
 import { CloseIcon } from './icons';
 import { NAV_ITEMS } from './navItems';
 
@@ -121,6 +122,7 @@ export default function Sidebar({
           treating birds.
         </p>
         <PrivacyNote />
+        <p className="fine">Version {BUILD}</p>
       </div>
     </aside>
   );
