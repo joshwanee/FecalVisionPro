@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { makeStoredPhoto, prepareInput } from '../lib/analysisInput';
+import { DecodeError, makeStoredPhoto, prepareInput } from '../lib/analysisInput';
 import { BUILD } from '../lib/buildInfo';
 import { classify, getCalibration, getRuntimeInfo } from '../lib/fecalvision';
 import { buildRecord, deleteScan, requestPersistence, saveScan } from '../lib/history';
@@ -7,7 +7,7 @@ import CaptureView from './CaptureView';
 import ResultPanel from './ResultPanel';
 import ReviewView from './ReviewView';
 import { ModelStatus } from './StatusPanels';
-import { CameraIcon, ImageIcon, InstallIcon } from './icons';
+import { CameraIcon, ImageIcon, InstallIcon, WarnIcon } from './icons';
 
 /**
  * FecalVision - scan flow.
@@ -110,7 +110,7 @@ export default function ScanScreen({
           `Build: ${BUILD}`,
           `What the model analysed: ${inputMode === 'square' ? 'centre square' : 'whole photo'}`,
           `File: ${input.details.fileBytes} bytes, ${input.details.fileType}`,
-          `Decoded photo: ${input.details.decoded} (${input.details.halvingSteps} halving steps)`,
+          `Decoded photo: ${input.details.decoded} via ${input.details.decodedVia} (${input.details.halvingSteps} halving steps)`,
           `Model input fingerprint: ${input.details.hash}, average colour ${input.details.mean}`,
           `Model: ${runtime.modelSource}, weights checksum ${runtime.weightsChecksum}`,
           `Calculation: ${runtime.backend}${runtime.backend === 'webgl' ? (runtime.float32 ? ' (full precision)' : ' (half precision)') : ''}`,
@@ -131,7 +131,10 @@ export default function ScanScreen({
         setSaved({ state: 'failed', id: null });
       }
     } catch (e) {
-      setError(`Analysis failed: ${e.message}`);
+      // A DecodeError already reads as a complete, specific sentence (what
+      // went wrong and what to try). Anything else is unexpected, so it keeps
+      // the generic "Analysis failed" framing rather than guessing at a cause.
+      setError(e instanceof DecodeError ? e.message : `Analysis failed: ${e.message}`);
       setPhase('reviewing');
     }
   };
@@ -216,6 +219,7 @@ export default function ScanScreen({
         <>
           {error && (
             <p className="callout callout--alert" role="alert">
+              <WarnIcon />
               <span>{error}</span>
             </p>
           )}
