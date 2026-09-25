@@ -1,0 +1,104 @@
+/*
+ * FecalVision design tokens.
+ *
+ * Every colour, size and font used by the app is defined here once; the rest of
+ * the CSS refers to these names and contains no raw colour values. Change a
+ * token and the whole app follows.
+ *
+ * Direction: clean and contemporary. A calm neutral surface, one strong green
+ * for actions, and colour reserved for MEANING (green = fine, amber = be
+ * careful, red = talk to a vet). Built for bright sun: text contrast is well
+ * above the WCAG AA minimum (4.5:1); approximate ratios are noted below.
+ */
+
+/* Inter, self-hosted (bundled and precached, so it works offline). */
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2')
+    format('woff2-variations');
+}
+
+:root {
+  color-scheme: light;
+
+  /* ---- surfaces -------------------------------------------------------- */
+  --bg: #f4f6f3;            /* page */
+  --surface: #ffffff;       /* cards, sheets, bars */
+  --surface-sunken: #eaeee9;/* wells, tracks, chips at rest */
+  --camera: #101411;        /* behind the camera preview */
+
+  /* ---- text ------------------------------------------------------------ */
+  --ink: #13201a;           /* on --bg: ~15:1 */
+  --ink-2: #435049;         /* secondary, on --bg: ~8:1 */
+  --ink-on-brand: #ffffff;
+
+  /* ---- brand and actions ---------------------------------------------- */
+  --brand: #166a3f;         /* primary action; white on it: ~6.6:1 */
+  --brand-strong: #0f5230;  /* pressed */
+  --brand-soft: #e2f2e8;    /* tint for "ready / ok" surfaces; --brand text on it: ~5.9:1 */
+  --ok-on-camera: #86e0a3;  /* "good" guide outline over the camera image */
+
+  /* ---- meaning --------------------------------------------------------- */
+  --caution: #fff1cc;       /* uncertain / needs attention */
+  --caution-ink: #5a3b00;   /* on --caution: ~8.5:1 */
+  --caution-line: #d9a400;
+  --alert: #b3261e;         /* veterinary referral; white on it: ~6.6:1 */
+  --alert-soft: #fdecea;    /* --alert text on it: ~5.5:1 */
+
+  /* ---- lines ----------------------------------------------------------- */
+  --scrim: rgb(19 32 26 / 50%);   /* dims the app behind the menu and dialogs */
+  --dim: rgb(16 20 17 / 58%);     /* dims the camera outside the framing square */
+
+  --line: #d3dad4;          /* dividers and card borders (decorative) */
+  --line-strong: #74827a;   /* control borders; >= 3:1 against --bg */
+  --focus: #1a5fb4;         /* keyboard focus ring */
+
+  /* ---- type ------------------------------------------------------------ */
+  --font: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --text-body: 1.0625rem;   /* 17px: comfortable at arm's length */
+  --text-small: 1rem;       /* 16px is the smallest text in the app */
+  --text-large: 1.25rem;
+  --text-title: 1.75rem;
+  --text-display: 2.75rem;
+
+  /* ---- space, size, shape --------------------------------------------- */
+  --space-1: 0.375rem;
+  --space-2: 0.75rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2.25rem;
+  --gutter: 1rem;
+
+  --tap: 3.25rem;           /* 52px: comfortable one-handed target */
+  --tap-min: 3rem;          /* 48px: the floor for any control */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 2px rgb(19 32 26 / 8%), 0 4px 14px rgb(19 32 26 / 6%);
+  --shadow-overlay: 0 12px 40px rgb(19 32 26 / 28%);
+
+  --bar-h: 3.5rem;          /* top bar */
+  --nav-h: 4rem;            /* bottom navigation */
+  --sidebar-w: 19rem;
+
+  /* ---- motion ---------------------------------------------------------- */
+  --ease: 160ms ease-out;
+}
+
+/* Users who ask their device for less motion get none of ours. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ease: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
