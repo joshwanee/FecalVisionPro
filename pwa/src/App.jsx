@@ -196,7 +196,7 @@ export default function App() {
       </div>
 
       <nav className="bottomnav" aria-label="Main" inert={menuOpen}>
-        {NAV_ITEMS.filter((item) => item.id !== 'help').map(({ id, label, Icon }) => (
+        {NAV_ITEMS.filter((item) => item.id !== 'home' && item.id !== 'help').map(({ id, label, Icon }) => (
           <button
             key={id}
             type="button"
