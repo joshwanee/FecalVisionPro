@@ -56,6 +56,11 @@
   --line-strong: #74827a;   /* control borders; >= 3:1 against --bg */
   --focus: #1a5fb4;         /* keyboard focus ring */
 
+  /* ---- home (landing) screen ------------------------------------------ */
+  --brand-deep: #163d2e;    /* wordmark and the sign-in button; white on it: ~12:1 */
+  --brand-mid: #2f7a55;     /* tagline and feature icons; on --surface: ~5.3:1 */
+  --home-wash: #eaf3ec;     /* top of the page's soft gradient */
+
   /* ---- type ------------------------------------------------------------ */
   --font: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --text-body: 1.0625rem;   /* 17px: comfortable at arm's length */
@@ -85,6 +90,41 @@
 
   /* ---- motion ---------------------------------------------------------- */
   --ease: 160ms ease-out;
+}
+
+/*
+ * Dark theme, switched from the Home screen (useTheme sets data-theme on
+ * <html>). Same names, night-time values; contrast stays above WCAG AA.
+ */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #0f1512;
+  --surface: #18201c;
+  --surface-sunken: #222c27;
+
+  --ink: #e6ede8;           /* on --bg: ~15:1 */
+  --ink-2: #a9b7ae;         /* on --bg: ~8.5:1 */
+  --ink-on-brand: #ffffff;
+
+  --brand: #1f8a52;
+  --brand-strong: #166a3f;
+  --brand-soft: #1b3325;
+
+  --caution: #3a2d0c;
+  --caution-ink: #ffdf8f;
+  --alert: #d0443a;
+  --alert-soft: #3a1714;
+
+  --line: #2e3a33;
+  --line-strong: #7d8c83;
+  --focus: #7fb0ff;
+
+  --brand-deep: #1f6b47;    /* white on it: ~6.4:1 */
+  --brand-mid: #7fd0a2;     /* on --surface: ~9:1 */
+  --home-wash: #132019;
+
+  --shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 4px 14px rgb(0 0 0 / 25%);
 }
 
 /* Users who ask their device for less motion get none of ours. */

@@ -142,3 +142,75 @@ export const ShieldIcon = () => (
     <path d="M9 12l2.2 2.2L15.5 10" />
   </Icon>
 );
+
+export const HomeIcon = () => (
+  <Icon>
+    <path d="M3.5 11L12 4l8.5 7M6 9v10.5h12V9" />
+    <path d="M10 19.5V14h4v5.5" />
+  </Icon>
+);
+
+/** Arrow into a door: "sign in". */
+export const LoginIcon = ({ size }) => (
+  <Icon size={size}>
+    <path d="M14 4h4.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H14" />
+    <path d="M4 12h10M10 8l4 4-4 4" />
+  </Icon>
+);
+
+export const UserIcon = ({ size }) => (
+  <Icon size={size}>
+    <circle cx="12" cy="8" r="3.75" />
+    <path d="M4.5 20c.8-3.6 3.8-5.5 7.5-5.5s6.7 1.9 7.5 5.5" />
+  </Icon>
+);
+
+export const InfoIcon = ({ size }) => (
+  <Icon size={size}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 11v5M12 8v.01" />
+  </Icon>
+);
+
+export const MoonIcon = ({ size }) => (
+  <Icon size={size}>
+    <path d="M19.5 14.5A7.5 7.5 0 0 1 9.5 4.5a7.5 7.5 0 1 0 10 10z" />
+  </Icon>
+);
+
+export const SunIcon = ({ size }) => (
+  <Icon size={size}>
+    <circle cx="12" cy="12" r="3.75" />
+    <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" />
+  </Icon>
+);
+
+export const SearchIcon = ({ size }) => (
+  <Icon size={size}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="M16 16l4 4" />
+  </Icon>
+);
+
+/** An open box: "diagnostic visualization". */
+export const CubeIcon = ({ size }) => (
+  <Icon size={size}>
+    <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" />
+    <path d="M4 7.5l8 4.5 8-4.5M12 12v9" />
+  </Icon>
+);
+
+export const DocIcon = ({ size }) => (
+  <Icon size={size}>
+    <path d="M6 3h8l4 4v14H6z" />
+    <path d="M14 3v4h4M9 12h6M9 16h6" />
+  </Icon>
+);
+
+/** Clock with a back arrow: "scan history". */
+export const RewindIcon = ({ size }) => (
+  <Icon size={size}>
+    <path d="M4 12a8 8 0 1 0 2.6-5.9" />
+    <path d="M4 4v4.5h4.5M12 8v4l3 2" />
+  </Icon>
+);

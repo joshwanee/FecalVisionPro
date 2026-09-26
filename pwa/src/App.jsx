@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import HelpScreen from './components/HelpScreen';
 import HistoryScreen from './components/HistoryScreen';
+import HomeScreen from './components/HomeScreen';
 import ScanScreen from './components/ScanScreen';
 import Sidebar from './components/Sidebar';
 import { StatusPill } from './components/StatusPanels';
@@ -10,6 +11,7 @@ import { useInputMode } from './hooks/useInputMode';
 import { useInstall } from './hooks/useInstall';
 import { useModel } from './hooks/useModel';
 import { useOfflineReady } from './hooks/useOfflineReady';
+import { useTheme } from './hooks/useTheme';
 import './tokens.css';
 import './styles.css';
 
@@ -18,6 +20,9 @@ import './styles.css';
  *
  *  - top bar: menu (burger) button, name, and the offline-readiness pill
  *  - the current screen (Scan, History, Help)
+ *
+ * The app opens on the Home (landing) screen, which has the whole page to
+ * itself: no top bar, menu or bottom navigation.
  *  - bottom navigation on phones, where the thumb is; on wide screens the same
  *    links live in a permanent sidebar instead
  *
@@ -25,7 +30,7 @@ import './styles.css';
  * steps out of the way, so the task has the whole screen.
  */
 export default function App() {
-  const [view, setView] = useState('scan');
+  const [view, setView] = useState('home');
   const [menuOpen, setMenuOpen] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [toast, setToast] = useState(null);
@@ -37,6 +42,7 @@ export default function App() {
   const { ready: offlineReady } = useOfflineReady(model.status === 'ready');
   const install = useInstall();
   const [inputMode, setInputMode] = useInputMode();
+  const [theme, toggleTheme] = useTheme();
   const installAvailable = !install.installed && (install.canPrompt || install.showIosHelp);
 
   // Online / offline status.
@@ -69,7 +75,8 @@ export default function App() {
 
   const closeMenu = useCallback(() => {
     setMenuOpen(false);
-    menuButtonRef.current?.focus();
+    // Wait a frame: the button is inert until the closed menu has rendered.
+    requestAnimationFrame(() => menuButtonRef.current?.focus());
   }, []);
 
   const navigate = (id) => {
@@ -81,6 +88,61 @@ export default function App() {
 
   const showToast = useCallback((t) => setToast(t), []);
   const openMenu = useCallback(() => setMenuOpen(true), []);
+
+  const toastEl = toast && (
+    <div className="toast" role="status">
+      <span>{toast.message}</span>
+      {toast.actionLabel && (
+        <button
+          type="button"
+          className="toast__action"
+          onClick={() => {
+            toast.onAction?.();
+            setToast(null);
+          }}
+        >
+          {toast.actionLabel}
+        </button>
+      )}
+    </div>
+  );
+
+  const sidebar = (overlay) => (
+    <Sidebar
+      overlay={overlay}
+      open={menuOpen}
+      onClose={closeMenu}
+      view={view}
+      onNavigate={navigate}
+      model={model}
+      offline={offline}
+      offlineReady={offlineReady}
+      install={install}
+      inputMode={inputMode}
+      onInputMode={setInputMode}
+    />
+  );
+
+  if (view === 'home') {
+    return (
+      <>
+        <HomeScreen
+          menuOpen={menuOpen}
+          onOpenMenu={openMenu}
+          menuButtonRef={menuButtonRef}
+          install={install}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onEnter={navigate}
+          // No sign-in service is connected yet; say so rather than pretend.
+          onLogin={() => showToast({ message: 'Google sign-in is not available yet. Continue as a guest for now.' })}
+        />
+        {sidebar(true)}
+        <div className="scrim scrim--overlay" hidden={!menuOpen} onClick={closeMenu} />
+        {toastEl}
+      </>
+    );
+  }
 
   return (
     <div className={focusMode ? 'app app--task' : 'app'}>
@@ -106,18 +168,7 @@ export default function App() {
       </header>
 
       <div className="app__body">
-        <Sidebar
-          open={menuOpen}
-          onClose={closeMenu}
-          view={view}
-          onNavigate={navigate}
-          model={model}
-          offline={offline}
-          offlineReady={offlineReady}
-          install={install}
-          inputMode={inputMode}
-          onInputMode={setInputMode}
-        />
+        {sidebar(false)}
         <div className="scrim" hidden={!menuOpen} onClick={closeMenu} />
 
         <main id="main" ref={mainRef} className="app__main" inert={menuOpen}>
@@ -159,23 +210,7 @@ export default function App() {
         ))}
       </nav>
 
-      {toast && (
-        <div className="toast" role="status">
-          <span>{toast.message}</span>
-          {toast.actionLabel && (
-            <button
-              type="button"
-              className="toast__action"
-              onClick={() => {
-                toast.onAction?.();
-                setToast(null);
-              }}
-            >
-              {toast.actionLabel}
-            </button>
-          )}
-        </div>
-      )}
+      {toastEl}
     </div>
   );
 }

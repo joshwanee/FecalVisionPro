@@ -11,6 +11,9 @@ import { NAV_ITEMS } from './navItems';
  * less often but must be able to find: the install button, offline status,
  * help and privacy.
  *
+ * With `overlay` (the Home screen) it stays a slide-over at every width, so it
+ * can be hidden and revealed on a desktop too.
+ *
  * On a phone, while it is open: focus moves inside, Tab stays inside, Escape
  * closes it, and focus returns to the burger button afterwards.
  */
@@ -25,6 +28,7 @@ export default function Sidebar({
   install,
   inputMode,
   onInputMode,
+  overlay = false,
 }) {
   const ref = useRef(null);
   const closeRef = useRef(null);
@@ -59,7 +63,7 @@ export default function Sidebar({
     <aside
       ref={ref}
       id="menu"
-      className={open ? 'sidebar is-open' : 'sidebar'}
+      className={['sidebar', overlay && 'sidebar--overlay', open && 'is-open'].filter(Boolean).join(' ')}
       aria-label="Menu"
       role={open ? 'dialog' : undefined}
       aria-modal={open ? 'true' : undefined}

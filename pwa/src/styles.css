@@ -276,6 +276,8 @@ h2:focus {
 .sidebar.is-open {
   transform: none;
   visibility: visible;
+  /* Visible at once when opening, so focus can move straight into it. */
+  transition: transform var(--ease), visibility 0s;
   box-shadow: var(--shadow-overlay);
 }
 
@@ -1318,6 +1320,313 @@ progress::-moz-progress-bar {
   margin-top: calc(-1 * var(--space-1));
 }
 
+/* ---- home (landing screen) -------------------------------------------------- */
+
+.home {
+  position: relative;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--space-5) + 2.5rem + env(safe-area-inset-top)) var(--gutter)
+    calc(var(--space-5) + env(safe-area-inset-bottom));
+  background: linear-gradient(to bottom, var(--home-wash), var(--bg) 70%);
+}
+
+.home__corner {
+  position: absolute;
+  top: calc(var(--space-3) + env(safe-area-inset-top));
+  right: max(var(--gutter), env(safe-area-inset-right));
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.home__menu {
+  position: absolute;
+  top: calc(var(--space-3) + env(safe-area-inset-top));
+  left: max(var(--gutter), env(safe-area-inset-left));
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  cursor: pointer;
+  transition: background var(--ease);
+}
+
+.home__tutorial {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 2.5rem;
+  padding: 0 var(--space-3);
+  border: 1.5px solid var(--brand-deep);
+  border-radius: 999px;
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--ease);
+}
+
+.home__theme {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  cursor: pointer;
+  transition: background var(--ease);
+}
+
+.home__menu:hover,
+.home__tutorial:hover,
+.home__theme:hover {
+  background: var(--brand-soft);
+}
+
+.home__main {
+  width: 100%;
+  max-width: 30rem;
+  display: grid;
+  gap: var(--space-5);
+  text-align: center;
+}
+
+.home__brand {
+  display: grid;
+  justify-items: center;
+}
+
+.home__wordmark {
+  font-size: clamp(2.75rem, 11vw, 3.5rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  color: var(--brand-deep);
+}
+
+:root[data-theme='dark'] .home__wordmark {
+  color: var(--ink);
+}
+
+.home__tagline {
+  margin-top: 0.125rem;
+  font-size: 0.875rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--brand-mid);
+}
+
+.home__intro {
+  max-width: 24rem;
+  margin: calc(-1 * var(--space-2)) auto 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: 1.6;
+}
+
+.home__actions {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.home__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap);
+  padding: var(--space-2) var(--space-3);
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--ease), transform var(--ease);
+}
+
+.home__button:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.home__button--primary {
+  background: var(--brand-deep);
+  color: var(--ink-on-brand);
+}
+
+.home__button--primary:hover {
+  background: var(--brand-strong);
+}
+
+.home__button--outline {
+  background: var(--surface);
+  border-color: var(--brand-deep);
+}
+
+.home__button--outline:hover {
+  background: var(--brand-soft);
+}
+
+.home__button--muted {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--ink-2);
+}
+
+.home__button--muted:hover:not(:disabled) {
+  background: var(--surface-sunken);
+}
+
+.home__button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.home__hint {
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+.home__features {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.home__feature {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: var(--space-3);
+  width: 100%;
+  height: 100%;
+  min-height: 6.5rem;
+  padding: var(--space-3) var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color var(--ease), box-shadow var(--ease);
+}
+
+.home__feature .icon {
+  color: var(--brand-mid);
+}
+
+.home__feature span {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.home__feature:hover {
+  border-color: var(--brand-mid);
+  box-shadow: var(--shadow);
+}
+
+/* Tutorial dialog: one step at a time */
+.tutorial {
+  width: min(26rem, calc(100vw - 2rem));
+  padding: 0;
+}
+
+.tutorial__card {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.tutorial__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-right: calc(-1 * var(--space-2));
+}
+
+.tutorial__count {
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brand-mid);
+}
+
+.tutorial__step {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  min-height: 12rem;
+  text-align: center;
+}
+
+.tutorial__step p {
+  color: var(--ink-2);
+}
+
+.tutorial__icon {
+  display: grid;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  margin-bottom: var(--space-2);
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-mid);
+}
+
+:root:not([data-theme='dark']) .tutorial__icon {
+  color: var(--brand);
+}
+
+.tutorial__dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A 12px dot inside a 32px touch area. */
+.tutorial__dot {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.tutorial__dot::before {
+  content: '';
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
+  background: var(--line-strong);
+  transition: width var(--ease), background var(--ease);
+}
+
+.tutorial__dot[aria-current='step']::before {
+  width: 1.5rem;
+  background: var(--brand);
+}
+
+/* A toast on Home has no bottom navigation to sit above. */
+.home ~ .toast {
+  bottom: calc(env(safe-area-inset-bottom) + var(--space-3));
+}
+
 /* ---- landscape phones and other short, wide windows --------------------------- */
 
 @media (orientation: landscape) and (max-height: 32rem) {
@@ -1372,10 +1681,10 @@ progress::-moz-progress-bar {
 
 @media (min-width: 64rem) {
   .topbar__menu,
-  .sidebar__close,
-  .sidebar__head,
+  .sidebar:not(.sidebar--overlay) .sidebar__close,
+  .sidebar:not(.sidebar--overlay) .sidebar__head,
   .bottomnav,
-  .scrim {
+  .scrim:not(.scrim--overlay) {
     display: none !important;
   }
 
@@ -1389,7 +1698,7 @@ progress::-moz-progress-bar {
     grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
   }
 
-  .sidebar {
+  .sidebar:not(.sidebar--overlay) {
     position: static;
     width: auto;
     transform: none;
