@@ -5,7 +5,6 @@ import {
   DocIcon,
   DownloadIcon,
   InfoIcon,
-  LoginIcon,
   MenuIcon,
   MoonIcon,
   RewindIcon,
@@ -35,7 +34,6 @@ export default function HomeScreen({
   install,
   theme,
   onToggleTheme,
-  onLogin,
   onEnter,
   menuOpen,
   onOpenMenu,
@@ -90,9 +88,6 @@ export default function HomeScreen({
         </p>
 
         <div className="home__actions">
-          <button type="button" className="home__button home__button--primary" onClick={onLogin}>
-            <LoginIcon size={20} /> Login with Google
-          </button>
           <button type="button" className="home__button home__button--outline" onClick={() => onEnter('scan')}>
             <UserIcon size={20} /> Continue as Guest
           </button>

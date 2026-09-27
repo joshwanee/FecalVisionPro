@@ -5,7 +5,7 @@ import HomeScreen from './components/HomeScreen';
 import ScanScreen from './components/ScanScreen';
 import Sidebar from './components/Sidebar';
 import { StatusPill } from './components/StatusPanels';
-import { MenuIcon } from './components/icons';
+import { MenuIcon, MoonIcon, SunIcon } from './components/icons';
 import { NAV_ITEMS } from './components/navItems';
 import { useInputMode } from './hooks/useInputMode';
 import { useInstall } from './hooks/useInstall';
@@ -43,6 +43,7 @@ export default function App() {
   const install = useInstall();
   const [inputMode, setInputMode] = useInputMode();
   const [theme, toggleTheme] = useTheme();
+  const dark = theme === 'dark';
   const installAvailable = !install.installed && (install.canPrompt || install.showIosHelp);
 
   // Online / offline status.
@@ -165,6 +166,14 @@ export default function App() {
         </button>
         <span className="topbar__title">FecalVision</span>
         <StatusPill offline={offline} offlineReady={offlineReady} />
+        <button
+          type="button"
+          className="home__theme"
+          aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+          onClick={toggleTheme}
+        >
+          {dark ? <SunIcon size={20} /> : <MoonIcon size={20} />}
+        </button>
       </header>
 
       <div className="app__body">
