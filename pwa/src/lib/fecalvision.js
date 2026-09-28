@@ -20,7 +20,14 @@ import * as tf from '@tensorflow/tfjs';
 // const META_URL = '/model/class_names.json';
 // const CALIBRATION_URL = '/model/calibration.json';
 // const IDB_KEY = 'indexeddb://fecalvision-v1';
-const MODEL_DIR = '/model';          // '/model-ablation' to switch
+// Which trained model the app loads (each folder in public/ is one model):
+//   '/model-cap2000_over'      System B, oversampled: the primary model (default)
+//   '/model'                   System A, trained on whole photographs
+//   '/model-cap2000_weighted'  System B, weighted: comparison only
+// Keep this line in exactly this form: vite.config.js reads it to decide which
+// model folder phones download for offline use. The saved-model cache key below
+// includes the folder name, so switching never serves another model's weights.
+export const MODEL_DIR = '/model-cap2000_over';
 const MODEL_URL = `${MODEL_DIR}/model.json`;
 const META_URL = `${MODEL_DIR}/class_names.json`; 
 const CALIBRATION_URL = `${MODEL_DIR}/calibration.json`;

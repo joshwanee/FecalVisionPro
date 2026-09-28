@@ -187,7 +187,7 @@ export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
             <li key={step}>{step}</li>
           ))}
         </ul>
-        {!uncertain && (
+        {!uncertain && TEST_RESULTS && (
           <p className="fine">
             In testing, when the app agreed to give an answer it was right{' '}
             {pct(TEST_RESULTS.answeredAccuracy, 1)} of the time. That means some confident answers are

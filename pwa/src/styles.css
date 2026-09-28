@@ -1751,3 +1751,26 @@ progress::-moz-progress-bar {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* ---- model recommendation in the menu --------------------------------------- */
+
+.setting__note {
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  clear: both;
+}
+
+.setting__tag {
+  display: inline-block;
+  margin-left: var(--space-1);
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: var(--text-small);
+  font-weight: 600;
+}
+
+.setting__option:has(input:checked) .setting__tag {
+  background: var(--surface);
+}

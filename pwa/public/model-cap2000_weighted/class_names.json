@@ -1,0 +1,21 @@
+{
+  "index_to_class": {
+    "0": "Coccidiosis",
+    "1": "Healthy",
+    "2": "Newcastle Disease",
+    "3": "Salmonella"
+  },
+  "class_to_index": {
+    "Coccidiosis": 0,
+    "Healthy": 1,
+    "Newcastle Disease": 2,
+    "Salmonella": 3
+  },
+  "directory_order_used_for_training": [
+    "coccidiosis",
+    "healthy",
+    "newcastle",
+    "salmonella"
+  ],
+  "note": "Output neuron i corresponds to index_to_class[i]. Never re-derive this from folder listings at inference time."
+}

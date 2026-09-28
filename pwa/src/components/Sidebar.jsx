@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { InstallPanel, ModelStatus, PrivacyNote } from './StatusPanels';
+import { ACTIVE_MODEL } from '../content/models';
 import { INPUT_MODES } from '../lib/analysisInput';
 import { BUILD } from '../lib/buildInfo';
 import { CloseIcon } from './icons';
@@ -103,6 +104,9 @@ export default function Sidebar({
 
       <fieldset className="setting">
         <legend>What the model analyses</legend>
+        <p className="setting__note">
+          This model was trained on {ACTIVE_MODEL.trainedOn}.
+        </p>
         {Object.entries(INPUT_MODES).map(([value, { label, help }]) => (
           <label key={value} className="setting__option">
             <input
@@ -114,6 +118,7 @@ export default function Sidebar({
             />
             <span>
               <strong>{label}</strong>
+              {value === ACTIVE_MODEL.defaultInput && <span className="setting__tag">Recommended</span>}
               <span className="setting__help">{help}</span>
             </span>
           </label>

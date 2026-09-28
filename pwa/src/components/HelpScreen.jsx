@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { ACTIVE_MODEL } from '../content/models';
 import { TEST_RESULTS } from '../content/performance';
 
 const pct = (p, digits = 0) => `${(p * 100).toFixed(digits)}%`;
@@ -34,6 +35,12 @@ export default function HelpScreen() {
             model analyses (the whole photo, or only that centre square) is set in the menu under
             &ldquo;What the model analyses&rdquo;.
           </p>
+          {ACTIVE_MODEL.defaultInput === 'square' && (
+            <p>
+              This model was trained on {ACTIVE_MODEL.trainedOn}, so it works best when the dropping
+              fills the square. If the dropping looks small in the frame, move closer.
+            </p>
+          )}
         </details>
 
         <details>
@@ -60,12 +67,17 @@ export default function HelpScreen() {
 
         <details>
           <summary>How far to trust it</summary>
-          <p>
-            On {TEST_RESULTS.images.toLocaleString()} photos the app had never seen, it was{' '}
-            {pct(TEST_RESULTS.overallAccuracy, 1)} accurate overall. It agreed to answer{' '}
-            {pct(TEST_RESULTS.answeredShare, 1)} of them, and was right {pct(TEST_RESULTS.answeredAccuracy, 1)}{' '}
-            of the time on those.
-          </p>
+          {TEST_RESULTS ? (
+            <p>
+              On {TEST_RESULTS.images ? `${TEST_RESULTS.images.toLocaleString()} ` : ''}test photos the
+              app had never seen, it was {pct(TEST_RESULTS.overallAccuracy, 1)} accurate overall.{' '}
+              {TEST_RESULTS.answeredShare
+                ? `It agreed to answer ${pct(TEST_RESULTS.answeredShare, 1)} of them, and was right ${pct(TEST_RESULTS.answeredAccuracy, 1)} of the time on those.`
+                : `When it agreed to give an answer, it was right ${pct(TEST_RESULTS.answeredAccuracy, 1)} of the time.`}
+            </p>
+          ) : (
+            <p>This model has not been measured on a test set yet, so no accuracy figure is shown.</p>
+          )}
           <p>
             That still means some confident answers are wrong. Always have a veterinarian confirm before treating birds, and call one
             straight away if birds are sick or dying.

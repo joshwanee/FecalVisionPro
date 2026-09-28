@@ -1,19 +1,12 @@
+import { ACTIVE_MODEL } from './models';
+
 /**
- * Documented test-set results, used only for honest "how far to trust this"
- * wording in the UI. They come from the held-out test evaluation
- * (1,206 images). UPDATE THIS FILE if the model is retrained.
- *
- * These are facts about the model, not settings: the confidence threshold and
- * temperature are NOT here; they are read from calibration.json at runtime.
+ * Documented test-set results of the model in use, for honest "how far to trust
+ * this" wording. They come from models.js, so the numbers always belong to the
+ * model actually loaded. It is null when that model was never tested, and the
+ * screens then show no figures at all.
  */
-export const TEST_RESULTS = {
-  images: 1206,
-  overallAccuracy: 0.951,
-  /** Of the photos the app agreed to answer, the share it got right. */
-  answeredAccuracy: 0.986,
-  /** Share of photos the app agreed to answer at the fitted threshold. */
-  answeredShare: 0.896,
-};
+export const TEST_RESULTS = ACTIVE_MODEL.tests;
 
 /**
  * If the top two classes are closer than this, the result screen points out
