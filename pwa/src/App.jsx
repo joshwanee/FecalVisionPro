@@ -7,6 +7,7 @@ import Sidebar from './components/Sidebar';
 import { StatusPill } from './components/StatusPanels';
 import { MenuIcon, MoonIcon, SunIcon } from './components/icons';
 import { NAV_ITEMS } from './components/navItems';
+import { useGateEnabled } from './hooks/useGateEnabled';
 import { useInputMode } from './hooks/useInputMode';
 import { useInstall } from './hooks/useInstall';
 import { useModel } from './hooks/useModel';
@@ -42,6 +43,7 @@ export default function App() {
   const { ready: offlineReady } = useOfflineReady(model.status === 'ready');
   const install = useInstall();
   const [inputMode, setInputMode] = useInputMode();
+  const [gateEnabled, setGateEnabled] = useGateEnabled();
   const [theme, toggleTheme] = useTheme();
   const dark = theme === 'dark';
   const installAvailable = !install.installed && (install.canPrompt || install.showIosHelp);
@@ -135,8 +137,6 @@ export default function App() {
           theme={theme}
           onToggleTheme={toggleTheme}
           onEnter={navigate}
-          // No sign-in service is connected yet; say so rather than pretend.
-          onLogin={() => showToast({ message: 'Google sign-in is not available yet. Continue as a guest for now.' })}
         />
         {sidebar(true)}
         <div className="scrim scrim--overlay" hidden={!menuOpen} onClick={closeMenu} />
@@ -188,6 +188,8 @@ export default function App() {
               offlineReady={offlineReady}
               install={install}
               inputMode={inputMode}
+              gateEnabled={gateEnabled}
+              onGateChange={setGateEnabled}
               onOpenMenu={openMenu}
               onViewHistory={() => navigate('history')}
               onFocusChange={setFocusMode}
