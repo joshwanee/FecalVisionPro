@@ -35,7 +35,6 @@ function unusedModelGlobs() {
   }
 }
 
-<<<<<<< HEAD
 // The WASM backend can use multiple CPU threads, but only inside a
 // "cross-origin isolated" page - a browser security mode a site opts into by
 // promising it embeds nothing from another origin (true here: everything is
@@ -47,21 +46,16 @@ const CROSS_ORIGIN_ISOLATION_HEADERS = {
   'Cross-Origin-Embedder-Policy': 'require-corp',
 };
 
-export default defineConfig({
-=======
 // `npm run dev:phone` (mode "phone"): serve over https on the local network,
 // so a phone can open the dev server and still use the camera. Browsers only
 // allow the camera on https or localhost. The certificate is self-signed, so
 // the browser warns once; choose "Advanced" then "Proceed".
 export default defineConfig(({ mode }) => ({
-  server: mode === 'phone' ? { host: true } : undefined,
-  preview: mode === 'phone' ? { host: true } : undefined,
->>>>>>> 340299129f19cb0b64ffdc043d6c8e60c4c1f011
   define: {
     __APP_BUILD__: JSON.stringify(`${commitId()} \u00b7 ${new Date().toISOString().slice(0, 16)}Z`),
   },
-  server: { headers: CROSS_ORIGIN_ISOLATION_HEADERS },
-  preview: { headers: CROSS_ORIGIN_ISOLATION_HEADERS },
+  server: { host: mode === 'phone' ? true : undefined, headers: CROSS_ORIGIN_ISOLATION_HEADERS },
+  preview: { host: mode === 'phone' ? true : undefined, headers: CROSS_ORIGIN_ISOLATION_HEADERS },
   plugins: [
     react(),
     mode === 'phone' && basicSsl(),

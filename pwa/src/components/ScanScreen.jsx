@@ -146,11 +146,8 @@ export default function ScanScreen({
           `Decoded photo: ${input.details.decoded} via ${input.details.decodedVia} (${input.details.halvingSteps} halving steps)`,
           `Model input fingerprint: ${input.details.hash}, average colour ${input.details.mean}`,
           `Model: ${runtime.modelSource}, weights checksum ${runtime.weightsChecksum}`,
-<<<<<<< HEAD
           `Calculation: ${runtime.backend} (${runtime.backendFromCache ? 'cached choice' : 'freshly tested'})` +
             (runtime.backendMaxDiff != null ? `, WebGL vs full-precision diff ${runtime.backendMaxDiff.toFixed(4)}` : ''),
-=======
-          `Calculation: ${runtime.backend}${runtime.backend === 'webgl' ? (runtime.float32 ? ' (full precision)' : ' (half precision)') : ''}`,
           `Dropping check: ${
             gate
               ? `passed, ${(gate.probability * 100).toFixed(1)}% dropping (needs ${(gate.threshold * 100).toFixed(0)}%)`
@@ -158,7 +155,6 @@ export default function ScanScreen({
                 ? 'said not a dropping; analysed anyway at the user\'s request'
                 : 'off'
           }`,
->>>>>>> 340299129f19cb0b64ffdc043d6c8e60c4c1f011
           `Calibration: temperature ${calibration.temperature.toFixed(2)}, threshold ${calibration.confidence_threshold}`,
           `Scores: ${result.ranked.map((r) => `${r.label} ${(r.probability * 100).toFixed(1)}%`).join(', ')}`,
           `Browser: ${navigator.userAgent}`,
