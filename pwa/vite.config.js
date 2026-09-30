@@ -1,6 +1,7 @@
 /* global process */
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import basicSsl from '@vitejs/plugin-basic-ssl';
 import { VitePWA } from 'vite-plugin-pwa';
 import { execSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
@@ -34,6 +35,7 @@ function unusedModelGlobs() {
   }
 }
 
+<<<<<<< HEAD
 // The WASM backend can use multiple CPU threads, but only inside a
 // "cross-origin isolated" page - a browser security mode a site opts into by
 // promising it embeds nothing from another origin (true here: everything is
@@ -46,6 +48,15 @@ const CROSS_ORIGIN_ISOLATION_HEADERS = {
 };
 
 export default defineConfig({
+=======
+// `npm run dev:phone` (mode "phone"): serve over https on the local network,
+// so a phone can open the dev server and still use the camera. Browsers only
+// allow the camera on https or localhost. The certificate is self-signed, so
+// the browser warns once; choose "Advanced" then "Proceed".
+export default defineConfig(({ mode }) => ({
+  server: mode === 'phone' ? { host: true } : undefined,
+  preview: mode === 'phone' ? { host: true } : undefined,
+>>>>>>> 340299129f19cb0b64ffdc043d6c8e60c4c1f011
   define: {
     __APP_BUILD__: JSON.stringify(`${commitId()} \u00b7 ${new Date().toISOString().slice(0, 16)}Z`),
   },
@@ -53,6 +64,7 @@ export default defineConfig({
   preview: { headers: CROSS_ORIGIN_ISOLATION_HEADERS },
   plugins: [
     react(),
+    mode === 'phone' && basicSsl(),
     VitePWA({
       registerType: 'autoUpdate',
       // Test the service worker with `npm run dev` too, not just after a build.
@@ -99,4 +111,4 @@ export default defineConfig({
       },
     }),
   ],
-});
+}));

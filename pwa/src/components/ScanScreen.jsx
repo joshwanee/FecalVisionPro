@@ -2,21 +2,23 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { DecodeError, makeStoredPhoto, prepareInput } from '../lib/analysisInput';
 import { BUILD } from '../lib/buildInfo';
 import { classify, getCalibration, getRuntimeInfo } from '../lib/fecalvision';
+import { checkDropping, loadGate } from '../lib/gate';
 import { buildRecord, deleteScan, requestPersistence, saveScan } from '../lib/history';
 import CaptureView from './CaptureView';
 import ResultPanel from './ResultPanel';
 import ReviewView from './ReviewView';
 import { ModelStatus } from './StatusPanels';
-import { CameraIcon, ImageIcon, InstallIcon, WarnIcon } from './icons';
+import { CameraIcon, ImageIcon, InstallIcon, RetakeIcon, WarnIcon } from './icons';
 
 /**
  * FecalVision - scan flow.
  *
- * One screen that moves through five phases:
- *   idle       -> instructions and the two ways to start
+ * One screen that moves through these phases:
+ *   idle       -> instructions, the two ways to start, the dropping-check switch
  *   capturing  -> live camera with framing guide and quality checks
  *   reviewing  -> look at the photo, retake or analyse
  *   analysing  -> the model is running (a fraction of a second)
+ *   rejected   -> the dropping check says this is not a dropping (not saved)
  *   result     -> what the model found, shown on the photo you took
  *
  * While capturing / reviewing / showing a result the rest of the app's
@@ -29,6 +31,8 @@ export default function ScanScreen({
   offlineReady,
   install,
   inputMode,
+  gateEnabled,
+  onGateChange,
   onOpenMenu,
   onViewHistory,
   onFocusChange,
@@ -38,6 +42,7 @@ export default function ScanScreen({
   const [scan, setScan] = useState(null); // the finished analysis (see ResultPanel)
   const [saved, setSaved] = useState({ state: 'idle', id: null }); // idle | saved | failed | removed
   const [error, setError] = useState(null);
+  const [rejection, setRejection] = useState(null); // { probability, threshold, quality } when the check says no
   const fileRef = useRef(null);
   const titleRef = useRef(null);
 
@@ -47,9 +52,15 @@ export default function ScanScreen({
     return () => onFocusChange?.(false);
   }, [phase, onFocusChange]);
 
-  // Return focus to the heading when coming back to the start screen.
+  // Load the dropping check ahead of the first scan, so it adds no wait later.
   useEffect(() => {
-    if (phase === 'idle') titleRef.current?.focus();
+    if (gateEnabled) loadGate().catch(() => {}); // a failure is reported at scan time
+  }, [gateEnabled]);
+
+  // Move focus to the heading of the start screen and of the "not a dropping"
+  // screen, so keyboard and screen-reader users land on it.
+  useEffect(() => {
+    if (phase === 'idle' || phase === 'rejected') titleRef.current?.focus();
   }, [phase]);
 
   // An object URL keeps its image in memory until revoked, so release it when
@@ -77,19 +88,40 @@ export default function ScanScreen({
   const reset = () => {
     setScan(null);
     setError(null);
+    setRejection(null);
     setPhoto(null);
     setSaved({ state: 'idle', id: null });
     setPhase('idle');
   };
 
-  const analyse = async (quality) => {
+  // skipGate: the user chose "Analyse anyway" after the dropping check said no.
+  const analyse = async (quality, { skipGate = false } = {}) => {
     if (!photo) return;
     setPhase('analysing');
     setError(null);
+    setRejection(null);
     try {
       // Build the model's input from the photo's real pixels (not from the
       // on-screen <img>, whose size depends on the layout). See analysisInput.js.
       const input = await prepareInput(photo.blob, inputMode);
+
+      // Dropping check first: a face or an object must not get a diagnosis.
+      let gate = null;
+      if (gateEnabled && !skipGate) {
+        try {
+          gate = await checkDropping(input.canvas);
+        } catch (e) {
+          throw new Error(`the dropping check could not run (${e.message}). Turn it off on the Scan screen to continue.`, {
+            cause: e,
+          });
+        }
+        if (!gate.isDropping) {
+          setRejection({ probability: gate.probability, threshold: gate.threshold, quality });
+          setPhase('rejected');
+          return;
+        }
+      }
+
       const result = await classify(input.canvas);
       const runtime = await getRuntimeInfo();
       const calibration = getCalibration();
@@ -114,8 +146,19 @@ export default function ScanScreen({
           `Decoded photo: ${input.details.decoded} via ${input.details.decodedVia} (${input.details.halvingSteps} halving steps)`,
           `Model input fingerprint: ${input.details.hash}, average colour ${input.details.mean}`,
           `Model: ${runtime.modelSource}, weights checksum ${runtime.weightsChecksum}`,
+<<<<<<< HEAD
           `Calculation: ${runtime.backend} (${runtime.backendFromCache ? 'cached choice' : 'freshly tested'})` +
             (runtime.backendMaxDiff != null ? `, WebGL vs full-precision diff ${runtime.backendMaxDiff.toFixed(4)}` : ''),
+=======
+          `Calculation: ${runtime.backend}${runtime.backend === 'webgl' ? (runtime.float32 ? ' (full precision)' : ' (half precision)') : ''}`,
+          `Dropping check: ${
+            gate
+              ? `passed, ${(gate.probability * 100).toFixed(1)}% dropping (needs ${(gate.threshold * 100).toFixed(0)}%)`
+              : skipGate
+                ? 'said not a dropping; analysed anyway at the user\'s request'
+                : 'off'
+          }`,
+>>>>>>> 340299129f19cb0b64ffdc043d6c8e60c4c1f011
           `Calibration: temperature ${calibration.temperature.toFixed(2)}, threshold ${calibration.confidence_threshold}`,
           `Scores: ${result.ranked.map((r) => `${r.label} ${(r.probability * 100).toFixed(1)}%`).join(', ')}`,
           `Browser: ${navigator.userAgent}`,
@@ -193,6 +236,21 @@ export default function ScanScreen({
             <li>Hold steady until every check turns green.</li>
           </ol>
 
+          <label className="switch">
+            <input
+              type="checkbox"
+              role="switch"
+              checked={gateEnabled}
+              onChange={(e) => onGateChange(e.target.checked)}
+            />
+            <span className="switch__text">
+              <strong>Check that the photo is a dropping</strong>
+              <span className="switch__help">
+                Stops faces, objects and other photos from getting a diagnosis.
+              </span>
+            </span>
+          </label>
+
           <div className="actions">
             <button
               type="button"
@@ -234,6 +292,40 @@ export default function ScanScreen({
             onRetake={() => setPhase('capturing')}
           />
         </>
+      )}
+
+      {phase === 'rejected' && photo && rejection && (
+        <section className="rejected" aria-labelledby="rejected-title">
+          <div className="callout callout--caution">
+            <WarnIcon />
+            <div className="callout__grow">
+              <h1 id="rejected-title" ref={titleRef} tabIndex={-1} className="rejected__title">
+                This doesn't look like a chicken dropping
+              </h1>
+              <p>
+                The dropping check gave it {(rejection.probability * 100).toFixed(0)}%, below the{' '}
+                {(rejection.threshold * 100).toFixed(0)}% needed, so no diagnosis was made and nothing was
+                saved. Frame one fresh dropping so it fills the square, then try again.
+              </p>
+            </div>
+          </div>
+          <img className="rejected__photo" src={photo.url} alt="The photo you took" />
+          <div className="actions">
+            <button type="button" className="button button--big button--primary" onClick={() => setPhase('capturing')}>
+              <RetakeIcon /> Retake photo
+            </button>
+            <button type="button" className="button button--secondary" onClick={() => fileRef.current?.click()}>
+              <ImageIcon /> Choose another photo
+            </button>
+            <button
+              type="button"
+              className="button button--quiet"
+              onClick={() => analyse(rejection.quality, { skipGate: true })}
+            >
+              It is a dropping, analyse anyway
+            </button>
+          </div>
+        </section>
       )}
 
       {phase === 'result' && scan && (
