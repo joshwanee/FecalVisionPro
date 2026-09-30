@@ -144,6 +144,7 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan }) {
       photoUrl: openUrl,
       photoBlob: open.thumb,
       inputMode: open.inputMode,
+      backend: open.backend,
       timestamp: open.timestamp,
       quality: { problems: open.problems.map((message, i) => ({ id: i, message })) },
     };

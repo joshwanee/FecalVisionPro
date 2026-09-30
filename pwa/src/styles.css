@@ -1774,3 +1774,62 @@ progress::-moz-progress-bar {
 .setting__option:has(input:checked) .setting__tag {
   background: var(--surface);
 }
+
+/* ---- diagnostics link in the menu footer -------------------------------------- */
+
+.diagnostics-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  padding: 0 var(--space-1);
+  border: 0;
+  background: transparent;
+  color: var(--brand);
+  font: inherit;
+  font-size: var(--text-small);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+/* ---- diagnostics screen: label/value rows, deliberately plain and screenshot-friendly */
+
+.diagnostics {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.diagnostics__row {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.diagnostics__row dt {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.diagnostics__row dd {
+  margin: 0.25rem 0 0;
+  font-size: var(--text-large);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.diagnostics__note {
+  font-size: var(--text-small);
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+.diagnostics__help {
+  margin: 0.35rem 0 0;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}

@@ -1,4 +1,6 @@
 import { MODEL_DOWNLOAD_MB } from '../content/performance';
+import { describeBackend } from '../lib/backend';
+import { getBackendInfo } from '../lib/fecalvision';
 import { CheckIcon, InstallIcon, ShieldIcon, WaitIcon, WarnIcon } from './icons';
 
 /**
@@ -72,27 +74,44 @@ export function ModelStatus({ model, offlineReady, offline }) {
         </div>
       );
     }
+    const messages = {
+      checking: 'Checking this phone for the saved model…',
+      cached: 'Starting the model…',
+      testing: 'Checking this device for accurate, fast results…',
+      warming: 'Starting the model…',
+    };
     return (
       <div className="callout" role="status">
         <WaitIcon />
-        <p>{model.stage === 'checking' ? 'Checking this phone for the saved model…' : 'Starting the model…'}</p>
+        <p>{messages[model.stage] ?? 'Starting the model…'}</p>
       </div>
     );
   }
 
+  // The self-test has already run by the time model.status is 'ready' (see
+  // loadModel() in fecalvision.js), so this is always available here.
+  const backendInfo = getBackendInfo();
+  const backend = backendInfo && describeBackend(backendInfo.backend);
+
   return offlineReady ? (
     <div className="callout callout--ok" role="status">
       <CheckIcon />
-      <p>
-        <strong>Ready to work without internet.</strong> The model is saved on this phone.
-      </p>
+      <div className="callout__grow">
+        <p>
+          <strong>Ready to work without internet.</strong> The model is saved on this phone.
+        </p>
+        {backend && <p className="callout__meta">Running on: {backend.label}</p>}
+      </div>
     </div>
   ) : (
     <div className="callout" role="status">
       <WaitIcon />
-      <p>
-        <strong>Model loaded.</strong> Saving the app for offline use…
-      </p>
+      <div className="callout__grow">
+        <p>
+          <strong>Model loaded.</strong> Saving the app for offline use…
+        </p>
+        {backend && <p className="callout__meta">Running on: {backend.label}</p>}
+      </div>
     </div>
   );
 }

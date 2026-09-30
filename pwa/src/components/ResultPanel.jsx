@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { GENERIC_GUIDANCE, GUIDANCE, RETAKE_TIPS } from '../content/guidance';
 import { CLOSE_MARGIN, TEST_RESULTS } from '../content/performance';
+import { describeBackend } from '../lib/backend';
 import { belowThreshold } from '../lib/fecalvision';
 import { renderReportCard, shareImage } from '../lib/report';
 import { ShareIcon } from './icons';
@@ -16,13 +17,14 @@ const pct = (p, digits = 0) => `${(p * 100).toFixed(digits)}%`;
  *    square is analysed) an outline of exactly which part was used;
  *  - the veterinary referral is always here, whatever the result.
  *
- * scan         : { result, photoUrl, photoBlob, inputMode, quality?, timestamp }
+ * scan         : { result, photoUrl, photoBlob, inputMode, backend?, quality?, timestamp }
  * primaryLabel : text of the main action button ("Scan another", "Back")
  * onPrimary    : what that button does
  * extra        : optional node shown above the buttons (saved note, delete...)
  */
 export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
-  const { result, photoUrl, photoBlob, inputMode, quality, timestamp, details } = scan;
+  const { result, photoUrl, photoBlob, inputMode, quality, timestamp, details, backend } = scan;
+  const backendDesc = backend && describeBackend(backend);
   const [aspect, setAspect] = useState(null); // photo width / height, known once it loads
   const headingRef = useRef(null);
   const [reportBlob, setReportBlob] = useState(null);
@@ -207,7 +209,8 @@ export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
       </aside>
 
       <p className="fine">
-        Analysed on this phone in {result.latencyMs} ms &middot; {new Date(timestamp).toLocaleString()}
+        Analysed on this phone in {result.latencyMs} ms
+        {backendDesc && <> using {backendDesc.label}</>} &middot; {new Date(timestamp).toLocaleString()}
       </p>
 
       {details && (

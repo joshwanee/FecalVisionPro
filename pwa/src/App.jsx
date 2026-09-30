@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import DiagnosticsScreen from './components/DiagnosticsScreen';
 import HelpScreen from './components/HelpScreen';
 import HistoryScreen from './components/HistoryScreen';
 import HomeScreen from './components/HomeScreen';
@@ -201,6 +202,7 @@ export default function App() {
             />
           )}
           {view === 'help' && <HelpScreen />}
+          {view === 'diagnostics' && <DiagnosticsScreen onBack={() => navigate('scan')} />}
         </main>
       </div>
 

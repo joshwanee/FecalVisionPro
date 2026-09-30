@@ -5,6 +5,7 @@
  * One record per scan:
  *   id, timestamp, thumb (a small JPEG of the whole photo),
  *   inputMode (which part of the photo the model used),
+ *   backend (which TF.js backend computed it - see src/lib/backend.js),
  *   label, confidence, reported (did it pass the threshold?),
  *   ranked (all four probabilities), threshold, temperature, margin,
  *   latencyMs, problems (quality issues noticed on the photo)
@@ -60,13 +61,17 @@ export async function requestPersistence() {
 
 /** Build the stored record from a finished scan (see ScanScreen). */
 export function buildRecord(scan) {
-  const { result, photoBlob, timestamp, quality, inputMode } = scan;
+  const { result, photoBlob, timestamp, quality, inputMode, backend } = scan;
   const calibration = getCalibration();
   return {
     id: crypto.randomUUID?.() ?? `${timestamp}-${Math.random().toString(16).slice(2)}`,
     timestamp,
     thumb: photoBlob,
     inputMode,
+    // Which TF.js backend computed this scan (see src/lib/backend.js). Kept per
+    // scan, not just for the current session, so an old result's Technical
+    // Details still say what actually computed it.
+    backend: backend ?? null,
     label: result.label,
     confidence: result.confidence,
     reported: !belowThreshold(result),

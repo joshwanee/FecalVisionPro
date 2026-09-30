@@ -15,6 +15,7 @@
  */
 
 import * as tf from '@tensorflow/tfjs';
+import { clearBackendCache, selectBackend } from './backend';
 
 // const MODEL_URL = '/model/model.json';
 // const META_URL = '/model/class_names.json';
@@ -99,6 +100,7 @@ function fetchWithByteProgress(onProgress) {
 
 let modelPromise = null;
 let modelSource = 'not loaded'; // for the technical details panel
+let backendInfo = null; // result of selectBackend(); see getBackendInfo()
 let runtimeInfo = null;
 let meta = { classes: [], calibration: null };
 
@@ -162,6 +164,13 @@ export async function loadModel({ onProgress, onStage } = {}) {
         // Private browsing or storage pressure: still usable this session.
       }
     }
+
+    // Pick the backend this device can trust (see backend.js for why this
+    // matters), and actually switch TF.js to it before anything real runs.
+    // Cached after the first run, so this only costs time once per model per
+    // device.
+    onStage?.('testing');
+    backendInfo = await selectBackend(model, MODEL_DIR);
 
     // Warm up once so the first real photo is not the slowest one.
     onStage?.('warming');
@@ -264,14 +273,34 @@ export async function getRuntimeInfo() {
       for (const t of list) sum += t.abs().sum().dataSync()[0];
     }
   });
-  const backend = tf.getBackend();
   runtimeInfo = {
-    backend,
-    float32: backend === 'webgl' ? tf.env().getBool('WEBGL_RENDER_FLOAT32_CAPABLE') : true,
+    // The backend actually chosen by the self-test (see backend.js), which is
+    // what classify() runs on - not merely a capability guess.
+    backend: backendInfo?.backend ?? tf.getBackend(),
+    backendMaxDiff: backendInfo?.maxDiff ?? null,
+    backendFromCache: backendInfo?.fromCache ?? null,
     modelSource,
     weightsChecksum: sum.toFixed(3),
   };
   return runtimeInfo;
+}
+
+/** The self-test's result: { backend, maxDiff, webglAvailable, fromCache }, or null before the model has loaded. */
+export function getBackendInfo() {
+  return backendInfo;
+}
+
+/**
+ * Clears the saved backend decision and measures again, reusing the model
+ * already in memory (no need to redownload or reparse it). Used by the
+ * diagnostics screen's "test again" button.
+ */
+export async function retestBackend() {
+  const model = await loadModel(); // already resolved; this just returns it
+  clearBackendCache(MODEL_DIR);
+  backendInfo = await selectBackend(model, MODEL_DIR);
+  runtimeInfo = null; // getRuntimeInfo() must recompute using the new backendInfo
+  return backendInfo;
 }
 
 export function isModelReady() {

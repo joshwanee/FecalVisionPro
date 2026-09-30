@@ -7,6 +7,9 @@ import { loadModel } from '../lib/fecalvision';
  * stage: 'checking'    looking for a copy already saved on this phone
  *        'downloading' first launch: fetching the ~4.6 MB model (progress is real)
  *        'cached'      found on this phone, so no download is needed
+ *        'testing'     measuring whether this device's WebGL can be trusted
+ *                       (see src/lib/backend.js); skipped on later launches,
+ *                       once the result is cached
  *        'warming'     one practice run so the first scan is fast
  * status: 'loading' | 'ready' | 'error'
  */

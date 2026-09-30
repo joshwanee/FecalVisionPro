@@ -34,10 +34,23 @@ function unusedModelGlobs() {
   }
 }
 
+// The WASM backend can use multiple CPU threads, but only inside a
+// "cross-origin isolated" page - a browser security mode a site opts into by
+// promising it embeds nothing from another origin (true here: everything is
+// self-hosted, confirmed by the absence of any CDN reference in this app).
+// These two headers are what turn that mode on. Without them WASM still
+// works, just single-threaded and therefore slower - it never fails outright.
+const CROSS_ORIGIN_ISOLATION_HEADERS = {
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Embedder-Policy': 'require-corp',
+};
+
 export default defineConfig({
   define: {
     __APP_BUILD__: JSON.stringify(`${commitId()} \u00b7 ${new Date().toISOString().slice(0, 16)}Z`),
   },
+  server: { headers: CROSS_ORIGIN_ISOLATION_HEADERS },
+  preview: { headers: CROSS_ORIGIN_ISOLATION_HEADERS },
   plugins: [
     react(),
     VitePWA({
@@ -68,8 +81,11 @@ export default defineConfig({
         // Only the model in use is downloaded for offline use (see unusedModelGlobs).
         globIgnores: unusedModelGlobs(),
         // The weight shards are a few MB each; Workbox skips large files by default.
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,json,bin,woff2}'],
-        maximumFileSizeToCacheInBytes: 30 * 1024 * 1024,
+        // wasm: the WebAssembly backend's binaries (see src/lib/backend.js) must be
+        // precached too, or a device that goes offline before its first successful
+        // online launch would have no full-precision fallback to use.
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,json,bin,woff2,wasm}'],
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/model/'),

@@ -104,6 +104,7 @@ export default function ScanScreen({
         timestamp: Date.now(),
         photoBlob: storedPhoto,
         photoUrl: photo.url,
+        backend: runtime.backend,
         // For the "Technical details" panel: everything that could make two
         // devices disagree about the same photo.
         details: [
@@ -113,7 +114,8 @@ export default function ScanScreen({
           `Decoded photo: ${input.details.decoded} via ${input.details.decodedVia} (${input.details.halvingSteps} halving steps)`,
           `Model input fingerprint: ${input.details.hash}, average colour ${input.details.mean}`,
           `Model: ${runtime.modelSource}, weights checksum ${runtime.weightsChecksum}`,
-          `Calculation: ${runtime.backend}${runtime.backend === 'webgl' ? (runtime.float32 ? ' (full precision)' : ' (half precision)') : ''}`,
+          `Calculation: ${runtime.backend} (${runtime.backendFromCache ? 'cached choice' : 'freshly tested'})` +
+            (runtime.backendMaxDiff != null ? `, WebGL vs full-precision diff ${runtime.backendMaxDiff.toFixed(4)}` : ''),
           `Calibration: temperature ${calibration.temperature.toFixed(2)}, threshold ${calibration.confidence_threshold}`,
           `Scores: ${result.ranked.map((r) => `${r.label} ${(r.probability * 100).toFixed(1)}%`).join(', ')}`,
           `Browser: ${navigator.userAgent}`,
