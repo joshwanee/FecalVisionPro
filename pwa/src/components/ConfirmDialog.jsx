@@ -1,12 +1,17 @@
 import { useEffect, useRef } from 'react';
 
 /**
- * A confirmation step for destructive actions (HCI: error prevention).
- * Uses the browser's built-in <dialog>, which traps keyboard focus, closes on
- * Escape and returns focus to the button that opened it, all for free.
- * The safe choice (Cancel) is first in the tab order and the safest to hit.
+ * A confirmation step before a consequential action (HCI: error prevention) -
+ * destructive ones (delete, clear), but also disruptive-but-safe ones like
+ * reloading the app to switch models. Uses the browser's built-in <dialog>,
+ * which traps keyboard focus, closes on Escape and returns focus to the
+ * button that opened it, all for free. The safe choice (Cancel) is first in
+ * the tab order and the safest to hit.
+ *
+ * tone: 'danger' (default, red button - cannot be undone) or 'primary'
+ * (green button - safe, just disruptive, like a reload).
  */
-export default function ConfirmDialog({ open, title, children, confirmLabel, onConfirm, onCancel }) {
+export default function ConfirmDialog({ open, title, children, confirmLabel, tone = 'danger', onConfirm, onCancel }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -24,7 +29,7 @@ export default function ConfirmDialog({ open, title, children, confirmLabel, onC
         <button type="button" className="button button--secondary" onClick={onCancel} autoFocus>
           Cancel
         </button>
-        <button type="button" className="button button--danger" onClick={onConfirm}>
+        <button type="button" className={`button button--${tone}`} onClick={onConfirm}>
           {confirmLabel}
         </button>
       </div>

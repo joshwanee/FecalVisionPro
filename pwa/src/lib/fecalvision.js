@@ -17,20 +17,33 @@
 import * as tf from '@tensorflow/tfjs';
 import { clearBackendCache, selectBackend } from './backend';
 
-// const MODEL_URL = '/model/model.json';
-// const META_URL = '/model/class_names.json';
-// const CALIBRATION_URL = '/model/calibration.json';
-// const IDB_KEY = 'indexeddb://fecalvision-v1';
-// Which trained model the app loads (each folder in public/ is one model):
-//   '/model-cap2000_over'      System B, oversampled: the primary model (default)
-//   '/model'                   System A, trained on whole photographs
-//   '/model-cap2000_weighted'  System B, weighted: comparison only
-// Keep this line in exactly this form: vite.config.js reads it to decide which
-// model folder phones download for offline use. The saved-model cache key below
-// includes the folder name, so switching never serves another model's weights.
-export const MODEL_DIR = '/model-cap2000_over';
+// Every trained model this app can load (what each one is - training data,
+// accuracy - lives in src/content/models.js). Kept here, not imported from
+// models.js, to avoid a circular import: models.js reads MODEL_DIR from this
+// file to know which one is currently active.
+const SELECTABLE_MODEL_DIRS = ['/model-cap2000_over', '/model', '/model-cap2000_weighted'];
+const DEFAULT_MODEL_DIR = '/model-cap2000_over'; // System B, oversampled: the primary model
+const MODEL_DIR_STORAGE_KEY = 'fecalvision-model-dir';
+
+/**
+ * Which model is active, for this whole page load: whatever was last chosen
+ * in the menu (see switchModel()), or DEFAULT_MODEL_DIR on a device that has
+ * never chosen one. A saved value that is not one of SELECTABLE_MODEL_DIRS
+ * (storage corruption, or a model removed in a later update) falls back to
+ * the default rather than trying to load something that no longer exists.
+ */
+function readModelDir() {
+  try {
+    const saved = localStorage.getItem(MODEL_DIR_STORAGE_KEY);
+    return saved && SELECTABLE_MODEL_DIRS.includes(saved) ? saved : DEFAULT_MODEL_DIR;
+  } catch {
+    return DEFAULT_MODEL_DIR; // storage unavailable (private browsing)
+  }
+}
+
+export const MODEL_DIR = readModelDir();
 const MODEL_URL = `${MODEL_DIR}/model.json`;
-const META_URL = `${MODEL_DIR}/class_names.json`; 
+const META_URL = `${MODEL_DIR}/class_names.json`;
 const CALIBRATION_URL = `${MODEL_DIR}/calibration.json`;
 const IDB_KEY = `indexeddb://fecalvision-${MODEL_DIR.slice(1)}`;
 const INPUT_SIZE = 224;
@@ -301,6 +314,31 @@ export async function retestBackend() {
   backendInfo = await selectBackend(model, MODEL_DIR);
   runtimeInfo = null; // getRuntimeInfo() must recompute using the new backendInfo
   return backendInfo;
+}
+
+/** Every model this app can switch to, in the order they should be offered. */
+export function getAvailableModelDirs() {
+  return [...SELECTABLE_MODEL_DIRS];
+}
+
+/**
+ * Switches to a different model by reloading the whole app. Reloading,
+ * rather than hot-swapping the model in place, is deliberate: it sends the
+ * app back through the exact same startup path a fresh launch already uses
+ * (load the graph, read its calibration, run the backend self-test, warm
+ * up), instead of a second, separately-tested path for changing models
+ * mid-session. Does nothing if `dir` is not one of this app's models, or is
+ * already the active one.
+ */
+export function switchModel(dir) {
+  if (!SELECTABLE_MODEL_DIRS.includes(dir) || dir === MODEL_DIR) return;
+  try {
+    localStorage.setItem(MODEL_DIR_STORAGE_KEY, dir);
+  } catch {
+    // The choice will not be remembered after this reload, but the reload
+    // itself still switches the model for the rest of this session.
+  }
+  window.location.reload();
 }
 
 export function isModelReady() {

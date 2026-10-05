@@ -4,7 +4,6 @@ import react from '@vitejs/plugin-react';
 import basicSsl from '@vitejs/plugin-basic-ssl';
 import { VitePWA } from 'vite-plugin-pwa';
 import { execSync } from 'node:child_process';
-import { readdirSync, readFileSync } from 'node:fs';
 
 // Commit id for the build stamp: Vercel provides it; locally ask git.
 function commitId() {
@@ -17,23 +16,15 @@ function commitId() {
 }
 
 /**
- * public/ holds several trained models but the app loads only ONE, named by
- * MODEL_DIR in src/lib/fecalvision.js. Phones save everything the service worker
- * "precaches" for offline use, so the models that are NOT in use are left out
- * (about 4.4 MB each). They are still deployed; they just are not downloaded.
- * If MODEL_DIR cannot be read, nothing is excluded, which is the safe direction.
+ * public/ holds four model folders, but the app only ever offers three of
+ * them to switch between (see src/content/models.js and the "Classification
+ * model" picker in the menu). model-ablation is a leftover comparison
+ * experiment from training, never shown in the app, so it is the only one
+ * left out of the offline download. The three real models are ALL precached
+ * - not just whichever one a phone happens to use first - so switching
+ * models in the menu keeps working even with no connection at all.
  */
-function unusedModelGlobs() {
-  try {
-    const source = readFileSync('src/lib/fecalvision.js', 'utf8');
-    const active = source.match(/^export const MODEL_DIR = '\/([^']+)'/m)[1];
-    return readdirSync('public')
-      .filter((name) => name.startsWith('model') && name !== active)
-      .map((name) => `**/${name}/**`);
-  } catch {
-    return [];
-  }
-}
+const EXCLUDED_MODEL_GLOBS = ['**/model-ablation/**'];
 
 // The WASM backend can use multiple CPU threads, but only inside a
 // "cross-origin isolated" page - a browser security mode a site opts into by
@@ -84,8 +75,9 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
-        // Only the model in use is downloaded for offline use (see unusedModelGlobs).
-        globIgnores: unusedModelGlobs(),
+        // All three selectable models are downloaded for offline use (see
+        // EXCLUDED_MODEL_GLOBS above).
+        globIgnores: EXCLUDED_MODEL_GLOBS,
         // The weight shards are a few MB each; Workbox skips large files by default.
         // wasm: the WebAssembly backend's binaries (see src/lib/backend.js) must be
         // precached too, or a device that goes offline before its first successful

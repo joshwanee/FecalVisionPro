@@ -2,7 +2,12 @@ import { MODEL_DIR } from '../lib/fecalvision';
 
 /**
  * What is known about each trained model in public/. The app loads ONE of
- * them, chosen by MODEL_DIR at the top of src/lib/fecalvision.js.
+ * them at a time - MODEL_DIR in src/lib/fecalvision.js - which the user can
+ * change from the "Classification model" picker in the menu (Sidebar.jsx).
+ *
+ * The keys here must match getAvailableModelDirs() in fecalvision.js: that
+ * list decides which models the picker actually offers, and this object
+ * decides what it says about each one.
  *
  * The temperature and confidence threshold are NOT here: each folder has its
  * own calibration.json and the app reads it at runtime. This file holds only

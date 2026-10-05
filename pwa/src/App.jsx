@@ -31,8 +31,27 @@ import './styles.css';
  * While a task is under way (camera, reviewing, a result) the bottom navigation
  * steps out of the way, so the task has the whole screen.
  */
+// Which screen to start on. Normally 'home' (the Tutorial/landing screen),
+// except right after switching models: that reloads the whole app (see
+// Sidebar.jsx), which would otherwise forget which screen was open and
+// strand the user back at "Continue as Guest". The flag is consumed
+// (removed) immediately, so it only affects that one reload, never a plain
+// manual refresh.
+function initialView() {
+  try {
+    const saved = sessionStorage.getItem('fecalvision-return-view');
+    if (saved) {
+      sessionStorage.removeItem('fecalvision-return-view');
+      return saved;
+    }
+  } catch {
+    /* storage unavailable: falls through to the normal Home start */
+  }
+  return 'home';
+}
+
 export default function App() {
-  const [view, setView] = useState('home');
+  const [view, setView] = useState(initialView);
   const [menuOpen, setMenuOpen] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [toast, setToast] = useState(null);

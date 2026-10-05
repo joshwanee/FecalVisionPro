@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DecodeError, makeStoredPhoto, prepareInput } from '../lib/analysisInput';
 import { BUILD } from '../lib/buildInfo';
-import { classify, getCalibration, getRuntimeInfo } from '../lib/fecalvision';
+import { classify, getCalibration, getRuntimeInfo, MODEL_DIR } from '../lib/fecalvision';
 import { checkDropping, loadGate } from '../lib/gate';
 import { buildRecord, deleteScan, requestPersistence, saveScan } from '../lib/history';
+import { ACTIVE_MODEL } from '../content/models';
 import CaptureView from './CaptureView';
 import ResultPanel from './ResultPanel';
 import ReviewView from './ReviewView';
@@ -145,7 +146,7 @@ export default function ScanScreen({
           `File: ${input.details.fileBytes} bytes, ${input.details.fileType}`,
           `Decoded photo: ${input.details.decoded} via ${input.details.decodedVia} (${input.details.halvingSteps} halving steps)`,
           `Model input fingerprint: ${input.details.hash}, average colour ${input.details.mean}`,
-          `Model: ${runtime.modelSource}, weights checksum ${runtime.weightsChecksum}`,
+          `Model: ${ACTIVE_MODEL.name} (${MODEL_DIR}), ${runtime.modelSource}, weights checksum ${runtime.weightsChecksum}`,
           `Calculation: ${runtime.backend} (${runtime.backendFromCache ? 'cached choice' : 'freshly tested'})` +
             (runtime.backendMaxDiff != null ? `, WebGL vs full-precision diff ${runtime.backendMaxDiff.toFixed(4)}` : ''),
           `Dropping check: ${
