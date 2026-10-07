@@ -13,10 +13,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * The camera is switched off when the component unmounts and whenever the tab
  * is hidden, so the phone's camera light does not stay on in the background.
  * Nothing from the camera is sent anywhere; frames are only drawn to canvases.
+ *
+ * Also reports what the camera itself can do, so the screen only offers what
+ * works on this phone:
+ *   zoom   {min, max, step} when the camera zooms in hardware, otherwise null
+ *          (the screen then zooms digitally instead)
+ *   torch  true when the flashlight can be switched on from the browser
  */
 export function useCamera(videoRef) {
   const [state, setState] = useState('starting');
   const [detail, setDetail] = useState('');
+  const [caps, setCaps] = useState({ zoom: null, torch: false });
+  const [torchOn, setTorchOn] = useState(false);
   const streamRef = useRef(null);
   // Each start/stop bumps this number. If an older start finishes after a newer
   // one (or after unmount), it sees the mismatch and shuts its stream down.
@@ -27,6 +35,8 @@ export function useCamera(videoRef) {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
+    // Stopping the track switches the flashlight off too.
+    setTorchOn(false);
   }, [videoRef]);
 
   const start = useCallback(async () => {
@@ -54,6 +64,12 @@ export function useCamera(videoRef) {
         return;
       }
       streamRef.current = stream;
+      const c = stream.getVideoTracks()[0]?.getCapabilities?.() ?? {};
+      setCaps({
+        zoom: c.zoom && c.zoom.max > c.zoom.min ? { min: c.zoom.min, max: c.zoom.max, step: c.zoom.step || 0.1 } : null,
+        torch: Array.isArray(c.torch) ? c.torch.includes(true) : Boolean(c.torch),
+      });
+      setTorchOn(false);
       videoRef.current.srcObject = stream;
       await videoRef.current.play();
       if (run === runRef.current) setState('live');
@@ -86,5 +102,36 @@ export function useCamera(videoRef) {
     };
   }, [start, stop]);
 
-  return { state, detail, restart: start };
+  /** Hardware zoom; only call when `zoom` is not null. */
+  const setZoom = useCallback(async (value) => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    try {
+      await track?.applyConstraints({ advanced: [{ zoom: value }] });
+    } catch {
+      /* the camera refused this value: keep the previous one */
+    }
+  }, []);
+
+  const toggleTorch = useCallback(async () => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+    const next = !torchOn;
+    try {
+      await track.applyConstraints({ advanced: [{ torch: next }] });
+      setTorchOn(next);
+    } catch {
+      /* the flashlight is busy or not really available */
+    }
+  }, [torchOn]);
+
+  return {
+    state,
+    detail,
+    restart: start,
+    zoomRange: caps.zoom,
+    setZoom,
+    torchAvailable: caps.torch,
+    torchOn,
+    toggleTorch,
+  };
 }

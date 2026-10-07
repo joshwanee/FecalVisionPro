@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import DiagnosticsScreen from './components/DiagnosticsScreen';
+import DiseasesScreen from './components/DiseasesScreen';
 import HelpScreen from './components/HelpScreen';
 import HistoryScreen from './components/HistoryScreen';
 import HomeScreen from './components/HomeScreen';
@@ -21,7 +22,7 @@ import './styles.css';
  * App shell.
  *
  *  - top bar: menu (burger) button, name, and the offline-readiness pill
- *  - the current screen (Scan, History, Help)
+ *  - the current screen (Scan, History, Disease guide, Help)
  *
  * The app opens on the Home (landing) screen, which has the whole page to
  * itself: no top bar, menu or bottom navigation.
@@ -222,13 +223,14 @@ export default function App() {
               onGoScan={() => navigate('scan')}
             />
           )}
+          {view === 'diseases' && <DiseasesScreen />}
           {view === 'help' && <HelpScreen />}
           {view === 'diagnostics' && <DiagnosticsScreen onBack={() => navigate('scan')} />}
         </main>
       </div>
 
       <nav className="bottomnav" aria-label="Main" inert={menuOpen}>
-        {NAV_ITEMS.filter((item) => item.id !== 'home' && item.id !== 'help').map(({ id, label, Icon }) => (
+        {NAV_ITEMS.filter((item) => !['home', 'diseases', 'help'].includes(item.id)).map(({ id, label, Icon }) => (
           <button
             key={id}
             type="button"

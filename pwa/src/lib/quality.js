@@ -70,13 +70,14 @@ export function sourceSize(el) {
  * Measure a video frame or image. Returns raw numbers only; evaluate() turns
  * them into advice.
  */
-export function measureFrame(source) {
+export function measureFrame(source, zoom = 1) {
   const N = LIMITS.SAMPLE_SIZE;
   const { ctx } = getSampler();
   const { w, h } = sourceSize(source);
 
   // The centre square: the same region preprocess() in fecalvision.js keeps.
-  const side = Math.min(w, h);
+  // With digital zoom on, only the middle 1/zoom of the frame is on screen.
+  const side = Math.min(w, h) / zoom;
   const sx = (w - side) / 2;
   const sy = (h - side) / 2;
   ctx.drawImage(source, sx, sy, side, side, 0, 0, N, N);

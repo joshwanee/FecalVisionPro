@@ -3,10 +3,16 @@ import { useCamera } from '../hooks/useCamera';
 import { useCropGuide } from '../hooks/useCropGuide';
 import { evaluate, LIMITS, measureFrame, smoothMetrics } from '../lib/quality';
 import QualityChecklist from './QualityChecklist';
-import { CameraIcon, CloseIcon, ImageIcon } from './icons';
+import { CameraIcon, CloseIcon, FlashIcon, ImageIcon, MinusIcon, PlusIcon } from './icons';
 
 // Open the app with ?debug in the address bar to see the raw quality numbers.
 const DEBUG = new URLSearchParams(window.location.search).has('debug');
+
+// Without hardware zoom the preview is enlarged and the photo cropped to match.
+const DIGITAL_ZOOM = { min: 1, max: 4 };
+// Past this, hardware zoom is mostly blur; getting closer works better.
+const MAX_HARDWARE_ZOOM = 8;
+const ZOOM_STEP = 0.5;
 
 /**
  * Live camera preview with a framing guide and real-time quality feedback.
@@ -27,6 +33,27 @@ export default function CaptureView({ inputMode, onCapture, onPickFile, onCancel
   const [quality, setQuality] = useState(null);
   const guideSide = useCropGuide(frameRef, videoSize.w, videoSize.h);
 
+  // Zoom level, remembered per camera session: when the camera restarts it
+  // starts again unzoomed, so the stored value is tied to the range it was for.
+  const hardware = camera.zoomRange;
+  const zoomMin = hardware ? hardware.min : DIGITAL_ZOOM.min;
+  const zoomMax = hardware ? Math.min(hardware.max, MAX_HARDWARE_ZOOM) : DIGITAL_ZOOM.max;
+  const [zoomState, setZoomState] = useState({ range: null, value: 1 });
+  const zoom = zoomState.range === hardware ? zoomState.value : zoomMin;
+  const digitalZoom = hardware ? 1 : zoom;
+  // The quality timer reads the latest digital zoom without restarting.
+  const digitalZoomRef = useRef(1);
+  useEffect(() => {
+    digitalZoomRef.current = digitalZoom;
+  }, [digitalZoom]);
+
+  const changeZoom = (direction) => {
+    const next = Math.min(zoomMax, Math.max(zoomMin, Math.round((zoom + direction * ZOOM_STEP) * 10) / 10));
+    if (next === zoom) return;
+    setZoomState({ range: hardware, value: next });
+    if (hardware) camera.setZoom(next);
+  };
+
   // Analyse the preview a few times per second (not every frame): quality does
   // not change that fast, and it keeps the phone cool and the battery alive.
   useEffect(() => {
@@ -34,7 +61,7 @@ export default function CaptureView({ inputMode, onCapture, onPickFile, onCancel
     const timer = setInterval(() => {
       const video = videoRef.current;
       if (!video || video.readyState < 2 || document.hidden) return;
-      smoothed.current = smoothMetrics(smoothed.current, measureFrame(video));
+      smoothed.current = smoothMetrics(smoothed.current, measureFrame(video, digitalZoomRef.current));
       const result = evaluate(smoothed.current);
       // Only re-render when the advice changes (or when debugging numbers).
       const signature = result.checks.map((c) => `${c.id}:${c.ok}`).join('|');
@@ -52,10 +79,15 @@ export default function CaptureView({ inputMode, onCapture, onPickFile, onCancel
     // Save the WHOLE frame at the camera's full resolution. What part of it the
     // model uses is decided later (see analysisInput.js), the same way as for a
     // photo picked from the gallery.
+    // With digital zoom on, keep only the middle part that was on screen.
+    const w = Math.round(video.videoWidth / digitalZoom);
+    const h = Math.round(video.videoHeight / digitalZoom);
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
+    canvas.width = w;
+    canvas.height = h;
+    canvas
+      .getContext('2d')
+      .drawImage(video, (video.videoWidth - w) / 2, (video.videoHeight - h) / 2, w, h, 0, 0, w, h);
     canvas.toBlob((blob) => blob && onCapture(blob), 'image/jpeg', 0.95);
   };
 
@@ -92,6 +124,7 @@ export default function CaptureView({ inputMode, onCapture, onPickFile, onCancel
           className="frame__media"
           playsInline
           muted
+          style={digitalZoom > 1 ? { transform: `scale(${digitalZoom})` } : undefined}
           onLoadedMetadata={(e) =>
             setVideoSize({ w: e.currentTarget.videoWidth, h: e.currentTarget.videoHeight })
           }
@@ -120,6 +153,44 @@ export default function CaptureView({ inputMode, onCapture, onPickFile, onCancel
 
       <div className="capture__panel">
         <QualityChecklist quality={quality} />
+
+        {live && (
+          <div className="camtools">
+            {camera.torchAvailable && (
+              <button
+                type="button"
+                className="camtools__button camtools__torch"
+                aria-pressed={camera.torchOn}
+                onClick={camera.toggleTorch}
+              >
+                <FlashIcon /> {camera.torchOn ? 'Light on' : 'Light off'}
+              </button>
+            )}
+            <div className="camtools__zoom" role="group" aria-label="Zoom">
+              <button
+                type="button"
+                className="camtools__button"
+                aria-label="Zoom out"
+                onClick={() => changeZoom(-1)}
+                disabled={zoom <= zoomMin}
+              >
+                <MinusIcon />
+              </button>
+              <span className="camtools__level" aria-live="polite">
+                {zoom.toFixed(1)}×
+              </span>
+              <button
+                type="button"
+                className="camtools__button"
+                aria-label="Zoom in"
+                onClick={() => changeZoom(1)}
+                disabled={zoom >= zoomMax}
+              >
+                <PlusIcon />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Primary action at the bottom of the screen, where the thumb rests. */}
         <button

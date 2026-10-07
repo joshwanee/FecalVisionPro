@@ -110,4 +110,13 @@ export function download(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
+/** "fecalvision-coccidiosis-2026-10-08-1432.jpg": one saved scan photo. */
+export function photoFileName(record) {
+  const d = new Date(record.timestamp);
+  const two = (n) => String(n).padStart(2, '0');
+  const stamp = `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}-${two(d.getHours())}${two(d.getMinutes())}`;
+  const label = (record.reported ? record.label : 'unclear').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return `fecalvision-${label}-${stamp}.jpg`;
+}
+
 export const exportName = (ext) => `fecalvision-history-${new Date().toISOString().slice(0, 10)}.${ext}`;

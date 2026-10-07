@@ -207,6 +207,33 @@ export const DocIcon = ({ size }) => (
   </Icon>
 );
 
+export const PlusIcon = () => (
+  <Icon>
+    <path d="M12 5v14M5 12h14" />
+  </Icon>
+);
+
+export const MinusIcon = () => (
+  <Icon>
+    <path d="M5 12h14" />
+  </Icon>
+);
+
+/** Lightning bolt: the camera flashlight. */
+export const FlashIcon = () => (
+  <Icon>
+    <path d="M13 2 4.5 13.5H12L11 22l8.5-11.5H12z" />
+  </Icon>
+);
+
+/** Open book: the disease guide. */
+export const BookIcon = () => (
+  <Icon>
+    <path d="M12 6.5C10.5 5 8 4.5 4 4.5v13c4 0 6.5.5 8 2 1.5-1.5 4-2 8-2v-13c-4 0-6.5.5-8 2z" />
+    <path d="M12 6.5v13" />
+  </Icon>
+);
+
 /** Clock with a back arrow: "scan history". */
 export const RewindIcon = ({ size }) => (
   <Icon size={size}>

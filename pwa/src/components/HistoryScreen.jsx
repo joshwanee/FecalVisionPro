@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { buildCsv, buildJson, buildZip, download, exportName } from '../lib/export';
+import { buildCsv, buildJson, buildZip, download, exportName, photoFileName } from '../lib/export';
 import { clearScans, deleteScan, listScans, recordToResult, restoreScan } from '../lib/history';
 import ConfirmDialog from './ConfirmDialog';
 import ResultPanel from './ResultPanel';
@@ -123,6 +123,11 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan }) {
     showToast({ message: 'History cleared.' });
   };
 
+  const savePhoto = (record) => {
+    download(record.thumb, photoFileName(record));
+    showToast({ message: 'Photo saved to this phone.' });
+  };
+
   const doExport = async (kind) => {
     setExporting(true);
     try {
@@ -158,9 +163,14 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan }) {
           primaryLabel="Back to history"
           onPrimary={closeDetail}
           extra={
-            <button type="button" className="button button--danger-quiet" onClick={() => remove(open)}>
-              <TrashIcon /> Delete this scan
-            </button>
+            <>
+              <button type="button" className="button button--secondary" onClick={() => savePhoto(open)}>
+                <DownloadIcon /> Save photo
+              </button>
+              <button type="button" className="button button--danger-quiet" onClick={() => remove(open)}>
+                <TrashIcon /> Delete this scan
+              </button>
+            </>
           }
         />
       </div>
