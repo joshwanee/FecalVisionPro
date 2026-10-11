@@ -6,6 +6,8 @@
  *   id, timestamp, thumb (a small JPEG of the whole photo),
  *   inputMode (which part of the photo the model used),
  *   backend (which TF.js backend computed it - see src/lib/backend.js),
+ *   analysedAnyway (the dropping check said no, but the user chose to see a
+ *   result anyway - never set by the normal, passed-the-check path),
  *   label, confidence, reported (did it pass the threshold?),
  *   ranked (all four probabilities), threshold, temperature, margin,
  *   latencyMs, problems (quality issues noticed on the photo)
@@ -61,7 +63,7 @@ export async function requestPersistence() {
 
 /** Build the stored record from a finished scan (see ScanScreen). */
 export function buildRecord(scan) {
-  const { result, photoBlob, timestamp, quality, inputMode, backend } = scan;
+  const { result, photoBlob, timestamp, quality, inputMode, backend, analysedAnyway } = scan;
   const calibration = getCalibration();
   return {
     id: crypto.randomUUID?.() ?? `${timestamp}-${Math.random().toString(16).slice(2)}`,
@@ -72,6 +74,9 @@ export function buildRecord(scan) {
     // scan, not just for the current session, so an old result's Technical
     // Details still say what actually computed it.
     backend: backend ?? null,
+    // True only when the dropping check said no and the user chose "analyse
+    // anyway" - see ScanScreen.jsx. Drives the warning flag in the History list.
+    analysedAnyway: analysedAnyway ?? false,
     label: result.label,
     confidence: result.confidence,
     reported: !belowThreshold(result),

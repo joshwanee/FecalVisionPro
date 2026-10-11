@@ -150,6 +150,7 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan }) {
       photoBlob: open.thumb,
       inputMode: open.inputMode,
       backend: open.backend,
+      analysedAnyway: open.analysedAnyway,
       timestamp: open.timestamp,
       quality: { problems: open.problems.map((message, i) => ({ id: i, message })) },
     };
@@ -244,6 +245,11 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan }) {
                     <span className="row__text">
                       <span className="row__title">
                         {r.reported ? r.label : 'Not clear enough to call'}
+                        {r.analysedAnyway && (
+                          <span className="badge badge--caution" title="The dropping check was unsure about this photo">
+                            Analysed anyway
+                          </span>
+                        )}
                       </span>
                       <span className="row__sub">
                         {r.reported

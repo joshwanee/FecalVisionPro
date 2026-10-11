@@ -12,8 +12,11 @@ import { RetakeIcon } from './icons';
  * onAnalyse(quality) : run the model on this photo
  * onRetake()         : throw it away and go back
  * inputMode          : 'whole' or 'square' (what part of the photo the model sees)
+ * busyLabel          : text shown on the button while busy (e.g. "Checking
+ *                       photo…" then "Analysing…" - two real steps, the
+ *                       dropping check and then the disease model)
  */
-export default function ReviewView({ url, busy, modelReady, inputMode, onAnalyse, onRetake }) {
+export default function ReviewView({ url, busy, busyLabel = 'Analysing…', modelReady, inputMode, onAnalyse, onRetake }) {
   const frameRef = useRef(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [quality, setQuality] = useState(null);
@@ -54,7 +57,7 @@ export default function ReviewView({ url, busy, modelReady, inputMode, onAnalyse
           onClick={() => onAnalyse(quality)}
           disabled={busy || !modelReady || !size.w}
         >
-          {busy ? 'Analysing…' : modelReady ? 'Analyse this photo' : 'Model still loading…'}
+          {busy ? busyLabel : modelReady ? 'Analyse this photo' : 'Model still loading…'}
         </button>
         <button type="button" className="button button--secondary" onClick={onRetake} disabled={busy}>
           <RetakeIcon /> Retake

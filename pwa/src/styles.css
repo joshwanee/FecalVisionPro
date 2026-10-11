@@ -1048,6 +1048,29 @@ progress::-moz-progress-bar {
   color: var(--caution-ink);
 }
 
+.badge--caution {
+  background: var(--caution);
+  color: var(--caution-ink);
+}
+
+.verdict__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  justify-self: start;
+}
+
+.verdict__badges .badge {
+  justify-self: unset;
+}
+
+/* The "Analysed anyway" flag sits inline after a history row's title text. */
+.row__title .badge {
+  display: inline-block;
+  margin-left: var(--space-1);
+  vertical-align: middle;
+}
+
 .verdict__figure {
   display: flex;
   align-items: baseline;

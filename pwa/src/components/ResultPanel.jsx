@@ -17,13 +17,13 @@ const pct = (p, digits = 0) => `${(p * 100).toFixed(digits)}%`;
  *    square is analysed) an outline of exactly which part was used;
  *  - the veterinary referral is always here, whatever the result.
  *
- * scan         : { result, photoUrl, photoBlob, inputMode, backend?, quality?, timestamp }
+ * scan         : { result, photoUrl, photoBlob, inputMode, backend?, analysedAnyway?, quality?, timestamp }
  * primaryLabel : text of the main action button ("Scan another", "Back")
  * onPrimary    : what that button does
  * extra        : optional node shown above the buttons (saved note, delete...)
  */
 export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
-  const { result, photoUrl, photoBlob, inputMode, quality, timestamp, details, backend } = scan;
+  const { result, photoUrl, photoBlob, inputMode, quality, timestamp, details, backend, analysedAnyway } = scan;
   const backendDesc = backend && describeBackend(backend);
   const [aspect, setAspect] = useState(null); // photo width / height, known once it loads
   const headingRef = useRef(null);
@@ -91,7 +91,10 @@ export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
 
       {/* ---- verdict ---- */}
       <div className={`verdict ${uncertain ? 'verdict--unsure' : ''}`}>
-        <p className="badge">{uncertain ? 'No result reported' : 'Screening result'}</p>
+        <div className="verdict__badges">
+          <p className="badge">{uncertain ? 'No result reported' : 'Screening result'}</p>
+          {analysedAnyway && <p className="badge badge--caution">Analysed anyway</p>}
+        </div>
         <h2 id="result-title" ref={headingRef} tabIndex={-1}>
           {verdict}
         </h2>
@@ -110,6 +113,15 @@ export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
           </>
         )}
       </div>
+
+      {analysedAnyway && (
+        <p className="callout callout--caution">
+          <span>
+            The photo check wasn&rsquo;t sure this is a dropping. Treat this result with extra
+            caution.
+          </span>
+        </p>
+      )}
 
       {closeCall && (
         <p className="callout callout--caution">

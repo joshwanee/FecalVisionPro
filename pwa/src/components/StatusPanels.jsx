@@ -79,6 +79,7 @@ export function ModelStatus({ model, offlineReady, offline }) {
       cached: 'Starting the model…',
       testing: 'Checking this device for accurate, fast results…',
       warming: 'Starting the model…',
+      gate: 'Loading the dropping check…',
     };
     return (
       <div className="callout" role="status">

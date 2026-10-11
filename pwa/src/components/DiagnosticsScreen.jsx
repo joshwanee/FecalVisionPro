@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { describeBackend } from '../lib/backend';
 import { getBackendInfo, getCalibration, MODEL_DIR, retestBackend } from '../lib/fecalvision';
+import { getGateInfo, getGateThreshold, isGateLoaded } from '../lib/gate';
 import { listScans } from '../lib/history';
 import { ACTIVE_MODEL } from '../content/models';
 import { ArrowLeftIcon, RewindIcon } from './icons';
@@ -45,6 +46,7 @@ export default function DiagnosticsScreen({ onBack }) {
 
   const desc = backend && describeBackend(backend.backend);
   const isolated = typeof window !== 'undefined' && window.crossOriginIsolated === true;
+  const gateInfo = getGateInfo(); // last scan's dropping-check result, or null
 
   return (
     <div className="screen">
@@ -96,6 +98,36 @@ export default function DiagnosticsScreen({ onBack }) {
           <dt>Average inference time</dt>
           <dd>{latency ? `${latency.avg} ms` : 'No scans yet'}</dd>
           {latency && <p className="diagnostics__help">Over the last {latency.count} scan{latency.count === 1 ? '' : 's'} on this phone.</p>}
+        </div>
+
+        <div className="diagnostics__row">
+          <dt>Dropping check</dt>
+          <dd>{isGateLoaded() ? 'Loaded' : 'Not available'}</dd>
+          <p className="diagnostics__help">
+            {isGateLoaded()
+              ? 'Runs before every scan to screen out photos that are not droppings.'
+              : 'Could not load (missing or invalid files). Scans run the disease model directly, with no dropping check - fails open rather than blocking scanning.'}
+          </p>
+        </div>
+
+        <div className="diagnostics__row">
+          <dt>Dropping check threshold</dt>
+          <dd>{getGateThreshold() != null ? getGateThreshold().toFixed(2) : 'n/a'}</dd>
+          <p className="diagnostics__help">From model-gate/gate.json. A photo passes at or above this score.</p>
+        </div>
+
+        <div className="diagnostics__row">
+          <dt>Last scan &mdash; dropping check</dt>
+          <dd>
+            {!gateInfo
+              ? 'No scan yet'
+              : !gateInfo.gateAvailable
+                ? 'Not available for that scan'
+                : `${(gateInfo.score * 100).toFixed(1)}% (${gateInfo.isDropping ? 'passed' : 'rejected'})`}
+          </dd>
+          {gateInfo?.analysedAnyway && (
+            <p className="diagnostics__help">The user chose &ldquo;analyse anyway&rdquo; after this check said no.</p>
+          )}
         </div>
 
         <div className="diagnostics__row">
