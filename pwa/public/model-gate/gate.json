@@ -1,0 +1,13 @@
+{
+  "model": "MobileNetV2 binary gate",
+  "alpha": 0.35,
+  "input": "float32 [1,224,224,3], values 0-255, centre-crop square then resize",
+  "output": "one sigmoid value = probability the photo contains a chicken dropping",
+  "threshold": 0.08,
+  "target_dropping_recall": 0.98,
+  "validation": {
+    "dropping_recall": 0.9816933638443935,
+    "negative_rejection": 0.8941441441441441
+  },
+  "fitted_on": "validation split only"
+}
