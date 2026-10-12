@@ -101,7 +101,6 @@ export function ModelStatus({ model, offlineReady, offline }) {
         <p>
           <strong>Ready to work without internet.</strong> It&rsquo;s saved on this phone.
         </p>
-        {/* {backend && <p className="callout__meta">Running on: {backend.label}</p>} */}
       </div>
     </div>
   ) : (
