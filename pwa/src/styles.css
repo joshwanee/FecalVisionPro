@@ -1017,7 +1017,7 @@ progress::-moz-progress-bar {
 .result {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: clamp(1rem, 4vw, var(--space-4));
 }
 
 .result h3 {
@@ -1091,7 +1091,7 @@ progress::-moz-progress-bar {
 }
 
 .numeral {
-  font-size: var(--text-display);
+  font-size: clamp(2.25rem, 9vw, var(--text-display));
   font-weight: 700;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -1111,6 +1111,7 @@ progress::-moz-progress-bar {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--camera);
+  box-shadow: var(--shadow);
 }
 
 .photo__frame img {
@@ -1138,6 +1139,16 @@ progress::-moz-progress-bar {
   font-size: var(--text-small);
 }
 
+/* Always visible on the result screen, styled as its own card so it reads as
+ * a primary section, not an afterthought squeezed between other content. */
+.scores {
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
 .scores__list {
   margin: 0;
   padding: 0;
@@ -1148,8 +1159,7 @@ progress::-moz-progress-bar {
 
 .score {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.35rem var(--space-2);
+  gap: 0.4rem;
   font-weight: 500;
 }
 
@@ -1157,22 +1167,36 @@ progress::-moz-progress-bar {
   font-weight: 700;
 }
 
+.score__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.score__name {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-size: var(--text-body);
+}
+
+.score__value {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-body);
+}
+
 .score__tag {
-  display: block;
   color: var(--ink-2);
   font-size: var(--text-small);
   font-weight: 400;
 }
 
-.score__value {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
 .score__bar {
   position: relative;
-  grid-column: 1 / -1;
-  height: 0.6rem;
+  height: 0.875rem;
   border-radius: 999px;
   background: var(--surface-sunken);
 }
@@ -1182,6 +1206,7 @@ progress::-moz-progress-bar {
   height: 100%;
   border-radius: 999px;
   background: var(--ink);
+  transition: width 400ms ease-out;
 }
 
 /* The confidence the app needs before it will name a result (from calibration.json). */
@@ -1196,30 +1221,15 @@ progress::-moz-progress-bar {
 }
 
 .scores .fine {
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--line);
 }
 
 .tech__body ul {
   padding-left: 1.25rem;
   display: grid;
   gap: var(--space-2);
-}
-
-.next-step {
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius);
-  background: var(--surface-sunken);
-}
-
-.referral {
-  padding: var(--space-3);
-  border: 1px solid var(--alert);
-  border-radius: var(--radius);
-  background: var(--alert-soft);
-}
-
-.referral strong {
-  color: var(--alert);
 }
 
 .saved {
