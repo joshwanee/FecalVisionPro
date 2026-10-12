@@ -136,7 +136,7 @@ export default function CaptureView({ inputMode, onCapture, onPickFile, onCancel
             aria-hidden="true"
           >
             <span className="frame__tag">
-              {inputMode === 'square' ? 'The model sees this square' : 'Keep the dropping in this square'}
+              {inputMode === 'square' ? 'Only this square is checked' : 'Keep the dropping in this square'}
             </span>
           </div>
         )}

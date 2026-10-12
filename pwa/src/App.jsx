@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import CoachTour from './components/CoachTour';
 import DiagnosticsScreen from './components/DiagnosticsScreen';
 import DiseasesScreen from './components/DiseasesScreen';
 import HelpScreen from './components/HelpScreen';
 import HistoryScreen from './components/HistoryScreen';
-import HomeScreen from './components/HomeScreen';
+import OnboardingDialog from './components/OnboardingDialog';
 import ScanScreen from './components/ScanScreen';
 import Sidebar from './components/Sidebar';
 import { StatusPill } from './components/StatusPanels';
 import { MenuIcon, MoonIcon, SunIcon } from './components/icons';
 import { NAV_ITEMS } from './components/navItems';
+import { useFirstVisitTour } from './hooks/useFirstVisitTour';
 import { useInputMode } from './hooks/useInputMode';
 import { useInstall } from './hooks/useInstall';
 import { useModel } from './hooks/useModel';
@@ -17,47 +19,68 @@ import { useTheme } from './hooks/useTheme';
 import './tokens.css';
 import './styles.css';
 
+const DESKTOP_QUERY = '(min-width: 64rem)';
+
 /**
  * App shell.
  *
  *  - top bar: menu (burger) button, name, and the offline-readiness pill
  *  - the current screen (Scan, History, Disease guide, Help)
- *
- * The app opens on the Home (landing) screen, which has the whole page to
- * itself: no top bar, menu or bottom navigation.
  *  - bottom navigation on phones, where the thumb is; on wide screens the same
  *    links live in a permanent sidebar instead
+ *
+ * The app always opens on Scan. The first time it opens on a device, a
+ * "where to click" guide (CoachTour) points at the real buttons on screen.
+ * Help has a "View guide again" link that opens the longer concept walkthrough
+ * (OnboardingDialog) on demand - that one is no longer shown automatically,
+ * since the coach tour already covers the same ground for new users.
  *
  * While a task is under way (camera, reviewing, a result) the bottom navigation
  * steps out of the way, so the task has the whole screen.
  */
-// Which screen to start on. Normally 'home' (the Tutorial/landing screen),
-// except right after switching models: that reloads the whole app (see
-// Sidebar.jsx), which would otherwise forget which screen was open and
-// strand the user back at "Continue as Guest". The flag is consumed
-// (removed) immediately, so it only affects that one reload, never a plain
-// manual refresh.
-function initialView() {
-  try {
-    const saved = sessionStorage.getItem('fecalvision-return-view');
-    if (saved) {
-      sessionStorage.removeItem('fecalvision-return-view');
-      return saved;
-    }
-  } catch {
-    /* storage unavailable: falls through to the normal Home start */
-  }
-  return 'home';
-}
-
 export default function App() {
-  const [view, setView] = useState(initialView);
+  const [view, setView] = useState('scan');
   const [menuOpen, setMenuOpen] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [toast, setToast] = useState(null);
   const [offline, setOffline] = useState(!navigator.onLine);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia(DESKTOP_QUERY).matches);
   const menuButtonRef = useRef(null);
   const mainRef = useRef(null);
+  const themeToggleRef = useRef(null);
+  // Phones/tablets: History and Help live in the bottom nav, the menu is a
+  // burger button. Desktop: those same two live in the permanent sidebar
+  // instead, and there is no burger button to point at (nothing to reveal -
+  // the sidebar is already on screen). The coach tour below picks the pair
+  // that is actually visible at the current width.
+  const historyNavRef = useRef(null);
+  const helpNavRef = useRef(null);
+  const historyLinkRef = useRef(null);
+  const helpLinkRef = useRef(null);
+  const openCameraRef = useRef(null);
+  const choosePhotoRef = useRef(null);
+
+  // "Where to click" guide: points at the real buttons on screen, once per
+  // device, as soon as the Scan screen's own buttons are ready.
+  const [shellTourSeen, markShellTourSeen] = useFirstVisitTour('fecalvision-tour-shell-seen');
+  const [shellTourActive, setShellTourActive] = useState(false);
+  const shellTourSteps = [
+    { ref: openCameraRef, title: 'Take a photo', text: 'Tap here to open the camera and photograph a dropping.' },
+    { ref: choosePhotoRef, title: 'Choose a photo', text: 'Or pick an existing photo from your gallery.' },
+    {
+      ref: isDesktop ? historyLinkRef : historyNavRef,
+      title: 'History',
+      text: 'Every past scan lives here, with its photo and result.',
+    },
+    {
+      ref: isDesktop ? helpLinkRef : helpNavRef,
+      title: 'Help',
+      text: 'Guides, the disease reference, and this tour again are here.',
+    },
+    ...(isDesktop ? [] : [{ ref: menuButtonRef, title: 'Menu', text: 'Settings, install, and offline status are here.' }]),
+    { ref: themeToggleRef, title: 'Light / dark', text: 'Switch between light and dark here.' },
+  ];
 
   const model = useModel();
   const { ready: offlineReady } = useOfflineReady(model.status === 'ready');
@@ -80,10 +103,14 @@ export default function App() {
   }, []);
 
   // The menu is a slide-over on phones only; if the window becomes wide (for
-  // example a tablet rotated), close it so no dialog state is left behind.
+  // example a tablet rotated), close it so no dialog state is left behind,
+  // and switch the coach tour to the sidebar's own History/Help buttons.
   useEffect(() => {
-    const wide = window.matchMedia('(min-width: 64rem)');
-    const onChange = () => wide.matches && setMenuOpen(false);
+    const wide = window.matchMedia(DESKTOP_QUERY);
+    const onChange = () => {
+      setIsDesktop(wide.matches);
+      if (wide.matches) setMenuOpen(false);
+    };
     wide.addEventListener('change', onChange);
     return () => wide.removeEventListener('change', onChange);
   }, []);
@@ -100,6 +127,21 @@ export default function App() {
     // Wait a frame: the button is inert until the closed menu has rendered.
     requestAnimationFrame(() => menuButtonRef.current?.focus());
   }, []);
+
+  const closeOnboarding = useCallback(() => setOnboardingOpen(false), []);
+
+  // Start the button guide once onboarding is out of the way, the first time
+  // only. A short delay lets the Scan screen's own buttons finish laying out.
+  useEffect(() => {
+    if (onboardingOpen || shellTourSeen || view !== 'scan') return undefined;
+    const t = setTimeout(() => setShellTourActive(true), 300);
+    return () => clearTimeout(t);
+  }, [onboardingOpen, shellTourSeen, view]);
+
+  const finishShellTour = useCallback(() => {
+    setShellTourActive(false);
+    markShellTourSeen();
+  }, [markShellTourSeen]);
 
   const navigate = (id) => {
     setView(id);
@@ -129,41 +171,6 @@ export default function App() {
     </div>
   );
 
-  const sidebar = (overlay) => (
-    <Sidebar
-      overlay={overlay}
-      open={menuOpen}
-      onClose={closeMenu}
-      view={view}
-      onNavigate={navigate}
-      model={model}
-      offline={offline}
-      offlineReady={offlineReady}
-      install={install}
-      inputMode={inputMode}
-      onInputMode={setInputMode}
-    />
-  );
-
-  if (view === 'home') {
-    return (
-      <>
-        <HomeScreen
-          menuOpen={menuOpen}
-          onOpenMenu={openMenu}
-          menuButtonRef={menuButtonRef}
-          install={install}
-          theme={theme}
-          onToggleTheme={toggleTheme}
-          onEnter={navigate}
-        />
-        {sidebar(true)}
-        <div className="scrim scrim--overlay" hidden={!menuOpen} onClick={closeMenu} />
-        {toastEl}
-      </>
-    );
-  }
-
   return (
     <div className={focusMode ? 'app app--task' : 'app'}>
       <a className="skip" href="#main">
@@ -186,8 +193,9 @@ export default function App() {
         <span className="topbar__title">FecalVision</span>
         <StatusPill offline={offline} offlineReady={offlineReady} />
         <button
+          ref={themeToggleRef}
           type="button"
-          className="home__theme"
+          className="theme-toggle"
           aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
           onClick={toggleTheme}
         >
@@ -196,7 +204,20 @@ export default function App() {
       </header>
 
       <div className="app__body">
-        {sidebar(false)}
+        <Sidebar
+          open={menuOpen}
+          onClose={closeMenu}
+          view={view}
+          onNavigate={navigate}
+          model={model}
+          offline={offline}
+          offlineReady={offlineReady}
+          install={install}
+          inputMode={inputMode}
+          onInputMode={setInputMode}
+          historyLinkRef={historyLinkRef}
+          helpLinkRef={helpLinkRef}
+        />
         <div className="scrim" hidden={!menuOpen} onClick={closeMenu} />
 
         <main id="main" ref={mainRef} className="app__main" inert={menuOpen}>
@@ -210,6 +231,8 @@ export default function App() {
               onOpenMenu={openMenu}
               onViewHistory={() => navigate('history')}
               onFocusChange={setFocusMode}
+              openCameraRef={openCameraRef}
+              choosePhotoRef={choosePhotoRef}
             />
           )}
           {view === 'history' && (
@@ -219,26 +242,38 @@ export default function App() {
               onGoScan={() => navigate('scan')}
             />
           )}
-          {view === 'diseases' && <DiseasesScreen />}
-          {view === 'help' && <HelpScreen />}
+          {view === 'diseases' && <DiseasesScreen onBack={() => navigate('help')} />}
+          {view === 'help' && (
+            <HelpScreen
+              onViewGuide={() => setOnboardingOpen(true)}
+              onViewDiseases={() => navigate('diseases')}
+            />
+          )}
           {view === 'diagnostics' && <DiagnosticsScreen onBack={() => navigate('scan')} />}
         </main>
       </div>
 
       <nav className="bottomnav" aria-label="Main" inert={menuOpen}>
-        {NAV_ITEMS.filter((item) => !['home', 'diseases', 'help'].includes(item.id)).map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            type="button"
-            className="bottomnav__link"
-            aria-current={view === id ? 'page' : undefined}
-            onClick={() => navigate(id)}
-          >
-            <Icon />
-            <span>{label}</span>
-          </button>
-        ))}
+        {NAV_ITEMS.map(({ id, label, Icon }) => {
+          const navRef = id === 'history' ? historyNavRef : id === 'help' ? helpNavRef : undefined;
+          return (
+            <button
+              key={id}
+              ref={navRef}
+              type="button"
+              className="bottomnav__link"
+              aria-current={view === id ? 'page' : undefined}
+              onClick={() => navigate(id)}
+            >
+              <Icon />
+              <span>{label}</span>
+            </button>
+          );
+        })}
       </nav>
+
+      <OnboardingDialog open={onboardingOpen} onClose={closeOnboarding} />
+      <CoachTour steps={shellTourSteps} active={shellTourActive} onFinish={finishShellTour} />
 
       {toastEl}
     </div>

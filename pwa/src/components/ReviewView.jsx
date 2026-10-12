@@ -57,7 +57,7 @@ export default function ReviewView({ url, busy, busyLabel = 'Analysing…', mode
           onClick={() => onAnalyse(quality)}
           disabled={busy || !modelReady || !size.w}
         >
-          {busy ? busyLabel : modelReady ? 'Analyse this photo' : 'Model still loading…'}
+          {busy ? busyLabel : modelReady ? 'Analyse this photo' : 'Starting up…'}
         </button>
         <button type="button" className="button button--secondary" onClick={onRetake} disabled={busy}>
           <RetakeIcon /> Retake

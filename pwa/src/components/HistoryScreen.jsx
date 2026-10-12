@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFirstVisitTour } from '../hooks/useFirstVisitTour';
 import { buildCsv, buildJson, buildZip, download, exportName, photoFileName } from '../lib/export';
 import { clearScans, deleteScan, listScans, recordToResult, restoreScan } from '../lib/history';
+import CoachTour from './CoachTour';
 import ConfirmDialog from './ConfirmDialog';
 import ResultPanel from './ResultPanel';
 import { ArrowLeftIcon, ChevronIcon, DownloadIcon, TrashIcon } from './icons';
@@ -42,6 +44,9 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan }) {
   const [confirmClear, setConfirmClear] = useState(false);
   const [exporting, setExporting] = useState(false);
   const titleRef = useRef(null);
+  const filtersRef = useRef(null);
+  const manageRef = useRef(null);
+  const [tourSeen, markTourSeen] = useFirstVisitTour('fecalvision-tour-history-seen');
 
   const refresh = useCallback(async () => {
     try {
@@ -205,7 +210,7 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan }) {
 
       {records && records.length > 0 && (
         <>
-          <div className="filters">
+          <div className="filters" ref={filtersRef}>
             <label>
               <span>Result</span>
               <select value={resultFilter} onChange={(e) => setResultFilter(e.target.value)}>
@@ -267,7 +272,7 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan }) {
           )}
 
           <details className="manage">
-            <summary>Export or clear history</summary>
+            <summary ref={manageRef}>Export or clear history</summary>
             <div className="manage__body">
               <p className="fine">
                 Exports the {shown.length} {shown.length === 1 ? 'scan' : 'scans'} shown above, saved to
@@ -308,6 +313,15 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan }) {
               </button>
             </div>
           </details>
+
+          <CoachTour
+            steps={[
+              { ref: filtersRef, title: 'Filter', text: 'Narrow the list by result or date.' },
+              { ref: manageRef, title: 'Export or clear', text: 'Save your records as a spreadsheet, or clear old scans.' },
+            ]}
+            active={!tourSeen}
+            onFinish={markTourSeen}
+          />
         </>
       )}
 

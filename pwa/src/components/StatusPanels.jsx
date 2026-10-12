@@ -41,7 +41,7 @@ export function ModelStatus({ model, offlineReady, offline }) {
         <WarnIcon />
         <div>
           <p>
-            <strong>The analysis model could not be loaded.</strong>{' '}
+            <strong>Could not load.</strong>{' '}
             {offline
               ? 'You are offline and it is not saved on this phone yet. Connect once to download it.'
               : model.error}
@@ -63,10 +63,10 @@ export function ModelStatus({ model, offlineReady, offline }) {
           <WaitIcon />
           <div className="callout__grow">
             <p>
-              <strong>Downloading the analysis model ({MODEL_DOWNLOAD_MB} MB).</strong> This happens
-              once; afterwards the app works offline.
+              <strong>Downloading ({MODEL_DOWNLOAD_MB} MB).</strong> This happens once; afterwards
+              the app works offline.
             </p>
-            <progress max="100" value={pct} aria-label="Model download progress" />
+            <progress max="100" value={pct} aria-label="Download progress" />
             <p className="callout__meta">
               {doneMb} of {MODEL_DOWNLOAD_MB} MB &middot; {pct}%
             </p>
@@ -75,16 +75,16 @@ export function ModelStatus({ model, offlineReady, offline }) {
       );
     }
     const messages = {
-      checking: 'Checking this phone for the saved model…',
-      cached: 'Starting the model…',
+      checking: 'Checking this phone for a saved copy…',
+      cached: 'Starting up…',
       testing: 'Checking this device for accurate, fast results…',
-      warming: 'Starting the model…',
+      warming: 'Starting up…',
       gate: 'Loading the dropping check…',
     };
     return (
       <div className="callout" role="status">
         <WaitIcon />
-        <p>{messages[model.stage] ?? 'Starting the model…'}</p>
+        <p>{messages[model.stage] ?? 'Starting up…'}</p>
       </div>
     );
   }
@@ -99,7 +99,7 @@ export function ModelStatus({ model, offlineReady, offline }) {
       <CheckIcon />
       <div className="callout__grow">
         <p>
-          <strong>Ready to work without internet.</strong> The model is saved on this phone.
+          <strong>Ready to work without internet.</strong> It&rsquo;s saved on this phone.
         </p>
         {backend && <p className="callout__meta">Running on: {backend.label}</p>}
       </div>
@@ -109,7 +109,7 @@ export function ModelStatus({ model, offlineReady, offline }) {
       <WaitIcon />
       <div className="callout__grow">
         <p>
-          <strong>Model loaded.</strong> Saving the app for offline use…
+          <strong>Loaded.</strong> Saving the app for offline use…
         </p>
         {backend && <p className="callout__meta">Running on: {backend.label}</p>}
       </div>
@@ -136,8 +136,8 @@ export function InstallPanel({ install }) {
       {install.canPrompt ? (
         <>
           <p>
-            Puts FecalVision on your home screen. Once installed and the model is saved, it opens in
-            the coop with no signal.
+            Puts FecalVision on your home screen. Once installed and saved, it opens in the coop with
+            no signal.
           </p>
           <button type="button" className="button button--primary" onClick={install.install}>
             Install FecalVision

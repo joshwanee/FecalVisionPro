@@ -1,12 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { COMPARISON, DISEASES, HEALTHY } from '../content/diseases';
+import { ArrowLeftIcon } from './icons';
 
 /**
  * Disease guide: what each disease the app screens for looks like, in the
  * droppings and in the bird. One section per disease that opens on tap
  * (progressive disclosure, like Help), then a side-by-side comparison.
+ * Reached from Help, not the main navigation.
  */
-export default function DiseasesScreen() {
+export default function DiseasesScreen({ onBack }) {
   const titleRef = useRef(null);
   useEffect(() => {
     titleRef.current?.focus();
@@ -14,6 +16,9 @@ export default function DiseasesScreen() {
 
   return (
     <div className="screen">
+      <button type="button" className="link link--back" onClick={onBack}>
+        <ArrowLeftIcon /> Help
+      </button>
       <h1 ref={titleRef} tabIndex={-1}>
         Disease guide
       </h1>

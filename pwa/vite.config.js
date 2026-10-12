@@ -16,15 +16,14 @@ function commitId() {
 }
 
 /**
- * public/ holds four model folders, but the app only ever offers three of
- * them to switch between (see src/content/models.js and the "Classification
- * model" picker in the menu). model-ablation is a leftover comparison
- * experiment from training, never shown in the app, so it is the only one
- * left out of the offline download. The three real models are ALL precached
- * - not just whichever one a phone happens to use first - so switching
- * models in the menu keeps working even with no connection at all.
+ * public/ holds several model folders left over from earlier comparisons,
+ * but the app only ever loads one: model-cap2000_over/ (see MODEL_DIR in
+ * src/lib/fecalvision.js), plus the separate, much smaller model-gate/
+ * dropping-check model. The others are never requested by the app, so they
+ * are excluded from the offline download - no point making a phone store
+ * megabytes of weights it will never use.
  */
-const EXCLUDED_MODEL_GLOBS = ['**/model-ablation/**'];
+const EXCLUDED_MODEL_GLOBS = ['**/model-ablation/**', '**/model/**', '**/model-cap2000_weighted/**'];
 
 // The WASM backend can use multiple CPU threads, but only inside a
 // "cross-origin isolated" page - a browser security mode a site opts into by
@@ -75,8 +74,8 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
-        // All three selectable models are downloaded for offline use (see
-        // EXCLUDED_MODEL_GLOBS above).
+        // Only the models the app actually loads are downloaded for offline
+        // use (see EXCLUDED_MODEL_GLOBS above).
         globIgnores: EXCLUDED_MODEL_GLOBS,
         // The weight shards are a few MB each; Workbox skips large files by default.
         // wasm: the WebAssembly backend's binaries (see src/lib/backend.js) must be
@@ -84,16 +83,6 @@ export default defineConfig(({ mode }) => ({
         // online launch would have no full-precision fallback to use.
         globPatterns: ['**/*.{js,css,html,svg,png,ico,json,bin,woff2,wasm}'],
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
-        runtimeCaching: [
-          {
-            urlPattern: ({ url }) => url.pathname.startsWith('/model/'),
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'fecalvision-model-v1',
-              expiration: { maxEntries: 40 },
-            },
-          },
-        ],
       },
     }),
   ],

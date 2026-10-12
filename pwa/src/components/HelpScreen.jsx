@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
+import { useFirstVisitTour } from '../hooks/useFirstVisitTour';
 import { ACTIVE_MODEL } from '../content/models';
 import { TEST_RESULTS } from '../content/performance';
+import CoachTour from './CoachTour';
 
 const pct = (p, digits = 0) => `${(p * 100).toFixed(digits)}%`;
 
@@ -8,8 +10,11 @@ const pct = (p, digits = 0) => `${(p * 100).toFixed(digits)}%`;
  * Built-in help (HCI: help and documentation). Short sections that open on tap,
  * so the screen is not a wall of text (progressive disclosure).
  */
-export default function HelpScreen() {
+export default function HelpScreen({ onViewGuide, onViewDiseases }) {
   const titleRef = useRef(null);
+  const guideBtnRef = useRef(null);
+  const diseaseBtnRef = useRef(null);
+  const [tourSeen, markTourSeen] = useFirstVisitTour('fecalvision-tour-help-seen');
   useEffect(() => {
     titleRef.current?.focus();
   }, []);
@@ -17,9 +22,27 @@ export default function HelpScreen() {
   return (
     <div className="screen">
       <h1 ref={titleRef} tabIndex={-1}>
-        Help and about
+        Help
       </h1>
       <p className="lead">FecalVision screens photos of chicken droppings. It does not diagnose disease.</p>
+
+      <div className="help-links">
+        <button ref={guideBtnRef} type="button" className="button button--secondary" onClick={onViewGuide}>
+          View guide again
+        </button>
+        <button ref={diseaseBtnRef} type="button" className="button button--secondary" onClick={onViewDiseases}>
+          Disease guide
+        </button>
+      </div>
+
+      <CoachTour
+        steps={[
+          { ref: guideBtnRef, title: 'View guide again', text: 'Replay the app introduction any time.' },
+          { ref: diseaseBtnRef, title: 'Disease guide', text: 'Look up what each disease looks like in droppings.' },
+        ]}
+        active={!tourSeen}
+        onFinish={markTourSeen}
+      />
 
       <div className="accordion">
         <details open>
@@ -31,14 +54,14 @@ export default function HelpScreen() {
             <li>Hold still until Light, Focus and Distance all show a tick.</li>
           </ol>
           <p>
-            The square on the camera screen is a framing guide: put the dropping inside it. What the
-            model analyses (the whole photo, or only that centre square) is set in the menu under
-            &ldquo;What the model analyses&rdquo;.
+            The square on the camera screen is a framing guide: put the dropping inside it. What part
+            of the photo is checked (the whole photo, or only that centre square) is set in the menu
+            under &ldquo;What part of the photo is checked&rdquo;.
           </p>
           {ACTIVE_MODEL.defaultInput === 'square' && (
             <p>
-              This model was trained on {ACTIVE_MODEL.trainedOn}, so it works best when the dropping
-              fills the square. If the dropping looks small in the frame, move closer.
+              This works best with {ACTIVE_MODEL.trainedOn}, so fill the square with the dropping. If
+              it looks small in the frame, move closer.
             </p>
           )}
         </details>
@@ -67,17 +90,13 @@ export default function HelpScreen() {
 
         <details>
           <summary>How far to trust it</summary>
-          {TEST_RESULTS ? (
-            <p>
-              On {TEST_RESULTS.images ? `${TEST_RESULTS.images.toLocaleString()} ` : ''}test photos the
-              app had never seen, it was {pct(TEST_RESULTS.overallAccuracy, 1)} accurate overall.{' '}
-              {TEST_RESULTS.answeredShare
-                ? `It agreed to answer ${pct(TEST_RESULTS.answeredShare, 1)} of them, and was right ${pct(TEST_RESULTS.answeredAccuracy, 1)} of the time on those.`
-                : `When it agreed to give an answer, it was right ${pct(TEST_RESULTS.answeredAccuracy, 1)} of the time.`}
-            </p>
-          ) : (
-            <p>This model has not been measured on a test set yet, so no accuracy figure is shown.</p>
-          )}
+          <p>
+            On test photos the app had never seen, it was {pct(TEST_RESULTS.overallAccuracy, 1)} accurate
+            overall.{' '}
+            {TEST_RESULTS.answeredShare
+              ? `It agreed to answer ${pct(TEST_RESULTS.answeredShare, 1)} of them, and was right ${pct(TEST_RESULTS.answeredAccuracy, 1)} of the time on those.`
+              : `When it agreed to give an answer, it was right ${pct(TEST_RESULTS.answeredAccuracy, 1)} of the time.`}
+          </p>
           <p>
             That still means some confident answers are wrong. Always have a veterinarian confirm before treating birds, and call one
             straight away if birds are sick or dying.
@@ -87,9 +106,9 @@ export default function HelpScreen() {
         <details>
           <summary>Using it without internet</summary>
           <p>
-            Open the app once with a connection so it can save itself and the analysis model
-            (4.6 MB). When the top bar says &ldquo;Works offline&rdquo;, it is ready. Install it from
-            the menu to open it from your home screen.
+            Open the app once with a connection so it can save itself (4.6 MB). When the top bar says
+            &ldquo;Works offline&rdquo;, it is ready. Install it from the menu to open it from your home
+            screen.
           </p>
         </details>
 

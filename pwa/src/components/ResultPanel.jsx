@@ -15,7 +15,10 @@ const pct = (p, digits = 0) => `${(p * 100).toFixed(digits)}%`;
  *    to guess, not a weak guess;
  *  - the user sees ONE image, the photo they took, and (when only the centre
  *    square is analysed) an outline of exactly which part was used;
- *  - the veterinary referral is always here, whatever the result.
+ *  - the veterinary referral is always here, whatever the result;
+ *  - by default, only the class, confidence and one short next step show;
+ *    everything longer (the full breakdown, all four scores) sits behind a
+ *    closed "Learn more" so the screen reads in a glance.
  *
  * scan         : { result, photoUrl, photoBlob, inputMode, backend?, analysedAnyway?, quality?, timestamp }
  * primaryLabel : text of the main action button ("Scan another", "Back")
@@ -37,6 +40,11 @@ export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
   const closeCall = second && result.margin < CLOSE_MARGIN;
   const guidance = GUIDANCE[result.label] ?? GENERIC_GUIDANCE;
   const verdict = uncertain ? 'Not clear enough to call' : result.label;
+
+  // The one thing to do next; the rest of the guidance is behind Learn more.
+  const firstProblem = quality?.problems?.[0]?.message;
+  const nextStep = uncertain ? (firstProblem ? `Retake: ${firstProblem.toLowerCase()}.` : RETAKE_TIPS[0]) : guidance.steps[0];
+  const moreSteps = uncertain ? RETAKE_TIPS.slice(1) : guidance.steps.slice(1);
 
   // One sentence for screen readers that says everything the screen shows.
   const spoken = uncertain
@@ -89,7 +97,7 @@ export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
         {spoken}
       </p>
 
-      {/* ---- verdict ---- */}
+      {/* ---- verdict: class, confidence, nothing longer ---- */}
       <div className={`verdict ${uncertain ? 'verdict--unsure' : ''}`}>
         <div className="verdict__badges">
           <p className="badge">{uncertain ? 'No result reported' : 'Screening result'}</p>
@@ -98,37 +106,24 @@ export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
         <h2 id="result-title" ref={headingRef} tabIndex={-1}>
           {verdict}
         </h2>
-        {uncertain ? (
-          <p>
-            The app will not guess from this photo. Its best match scored {pct(best.probability)},
-            below the {pct(result.threshold)} it needs before it will report a result.
+        {!uncertain && (
+          <p className="verdict__figure">
+            <span className="numeral">{pct(best.probability)}</span>
+            <span>confidence</span>
           </p>
-        ) : (
-          <>
-            <p className="verdict__figure">
-              <span className="numeral">{pct(best.probability)}</span>
-              <span>confidence</span>
-            </p>
-            <p>{guidance.signs}</p>
-          </>
         )}
       </div>
 
       {analysedAnyway && (
         <p className="callout callout--caution">
-          <span>
-            The photo check wasn&rsquo;t sure this is a dropping. Treat this result with extra
-            caution.
-          </span>
+          <span>The photo check wasn&rsquo;t sure this is a dropping. Treat this result with extra caution.</span>
         </p>
       )}
 
       {closeCall && (
         <p className="callout callout--caution">
           <span>
-            <strong>Close call.</strong> {best.label} scored {pct(best.probability)} and {second.label}{' '}
-            scored {pct(second.probability)}. Two classes competed, which is another reason not to
-            rely on this photo.
+            <strong>Close call:</strong> {best.label} and {second.label} scored close together.
           </span>
         </p>
       )}
@@ -139,6 +134,19 @@ export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
         </p>
       )}
 
+      {/* ---- the one next step ---- */}
+      <p className="next-step">
+        <strong>Next:</strong> {nextStep}
+      </p>
+
+      {/* ---- veterinary referral: always one short line, whatever the result ---- */}
+      <aside className="referral" aria-label="Veterinary referral">
+        <p>
+          <strong>Screening aid, not a diagnosis.</strong> Have a veterinarian confirm, especially if
+          birds are sick or dying.
+        </p>
+      </aside>
+
       {/* ---- what was analysed: the photo itself ---- */}
       <figure className="photo">
         <div className="photo__frame" style={aspect ? { aspectRatio: aspect } : undefined}>
@@ -147,7 +155,7 @@ export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
             alt="The photo that was analysed"
             onLoad={(e) => setAspect(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)}
           />
-          {/* Only when the model used just the centre square: outline exactly that part. */}
+          {/* Only when just the centre square was checked: outline exactly that part. */}
           {inputMode === 'square' && aspect && (
             <span
               className="photo__square"
@@ -160,70 +168,62 @@ export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
           )}
         </div>
         <figcaption>
-          <strong>The photo that was analysed.</strong>{' '}
-          {inputMode === 'square'
-            ? 'The model used only the outlined centre square; the rest was ignored.'
-            : 'The model saw the whole photo.'}
+          {inputMode === 'square' ? 'Only the outlined square was checked.' : 'The whole photo was checked.'}
         </figcaption>
       </figure>
 
-      {/* ---- all four scores ---- */}
-      <div className="scores">
-        <h3>All four scores</h3>
-        <ol className="scores__list" aria-label="Scores for each class, highest first">
-          {result.ranked.map((r, i) => (
-            <li key={r.index} className={i === 0 ? 'score score--top' : 'score'}>
-              <span className="score__name">
-                {r.label}
-                {i === 0 && uncertain && <span className="score__tag">best match, not reported</span>}
-              </span>
-              <span className="score__value">{pct(r.probability, 1)}</span>
-              <span className="score__bar" aria-hidden="true">
-                <span className="score__fill" style={{ width: `${Math.max(r.probability * 100, 1)}%` }} />
-                <span className="score__tick" style={{ left: pct(result.threshold) }} />
-              </span>
-            </li>
-          ))}
-        </ol>
-        <p className="fine">
-          The red tick marks {pct(result.threshold)}, the confidence the app needs before it will
-          name a result.
-        </p>
-      </div>
+      {/* ---- everything longer, closed by default ---- */}
+      <details className="tech">
+        <summary>Learn more</summary>
+        <div className="tech__body">
+          {!uncertain && <p>{guidance.signs}</p>}
 
-      {/* ---- what to do next ---- */}
-      <div className="next">
-        <h3>{uncertain ? 'How to get a clearer photo' : 'What to do next'}</h3>
-        <ul>
-          {uncertain &&
-            (quality?.problems ?? []).map((p) => <li key={p.id}>This photo: {p.message.toLowerCase()}.</li>)}
-          {(uncertain ? RETAKE_TIPS : guidance.steps).map((step) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ul>
-        {!uncertain && TEST_RESULTS && (
+          {moreSteps.length > 0 && (
+            <ul>
+              {uncertain &&
+                (quality?.problems ?? []).slice(1).map((p) => <li key={p.id}>{p.message}.</li>)}
+              {moreSteps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ul>
+          )}
+
+          {!uncertain && TEST_RESULTS && (
+            <p className="fine">
+              In testing, when the app agreed to give an answer it was right{' '}
+              {pct(TEST_RESULTS.answeredAccuracy, 1)} of the time. Some confident answers are still wrong.
+            </p>
+          )}
+
+          <div className="scores">
+            <h3>All four scores</h3>
+            <ol className="scores__list" aria-label="Scores for each class, highest first">
+              {result.ranked.map((r, i) => (
+                <li key={r.index} className={i === 0 ? 'score score--top' : 'score'}>
+                  <span className="score__name">
+                    {r.label}
+                    {i === 0 && uncertain && <span className="score__tag">best match, not reported</span>}
+                  </span>
+                  <span className="score__value">{pct(r.probability, 1)}</span>
+                  <span className="score__bar" aria-hidden="true">
+                    <span className="score__fill" style={{ width: `${Math.max(r.probability * 100, 1)}%` }} />
+                    <span className="score__tick" style={{ left: pct(result.threshold) }} />
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <p className="fine">
+              The red tick marks {pct(result.threshold)}, the confidence the app needs before it will
+              name a result.
+            </p>
+          </div>
+
           <p className="fine">
-            In testing, when the app agreed to give an answer it was right{' '}
-            {pct(TEST_RESULTS.answeredAccuracy, 1)} of the time. That means some confident answers are
-            still wrong.
+            Analysed on this phone in {result.latencyMs} ms
+            {backendDesc && <> using {backendDesc.label}</>} &middot; {new Date(timestamp).toLocaleString()}
           </p>
-        )}
-      </div>
-
-      {/* ---- veterinary referral: always shown, whatever the result ---- */}
-      <aside className="referral" aria-label="Veterinary referral">
-        <h3>Talk to a veterinarian</h3>
-        <p>
-          This app screens photos on your phone; it cannot diagnose disease. A veterinarian or your
-          local agriculture office can confirm what is wrong and how to treat it. If birds are sick,
-          dying, or many are affected, call them now, whatever this result says.
-        </p>
-      </aside>
-
-      <p className="fine">
-        Analysed on this phone in {result.latencyMs} ms
-        {backendDesc && <> using {backendDesc.label}</>} &middot; {new Date(timestamp).toLocaleString()}
-      </p>
+        </div>
+      </details>
 
       {details && (
         <details className="tech">

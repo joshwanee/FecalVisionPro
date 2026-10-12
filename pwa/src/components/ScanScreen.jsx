@@ -40,6 +40,8 @@ export default function ScanScreen({
   onOpenMenu,
   onViewHistory,
   onFocusChange,
+  openCameraRef,
+  choosePhotoRef,
 }) {
   const [phase, setPhase] = useState('idle');
   const [photo, setPhoto] = useState(null); // { blob, url } the photo taken or picked
@@ -244,13 +246,19 @@ export default function ScanScreen({
 
           <div className="actions">
             <button
+              ref={openCameraRef}
               type="button"
               className="button button--big button--primary"
               onClick={() => setPhase('capturing')}
             >
               <CameraIcon /> Open camera
             </button>
-            <button type="button" className="button button--secondary" onClick={() => fileRef.current?.click()}>
+            <button
+              ref={choosePhotoRef}
+              type="button"
+              className="button button--secondary"
+              onClick={() => fileRef.current?.click()}
+            >
               <ImageIcon /> Choose a photo
             </button>
           </div>
@@ -310,7 +318,7 @@ export default function ScanScreen({
               className="button button--quiet"
               onClick={() => analyse(rejection.quality, { skipGate: true })}
             >
-              It is a dropping &mdash; analyse anyway
+              Analyse anyway
             </button>
           </div>
         </section>
