@@ -99,10 +99,15 @@ The app runs two models: a **disease classifier** (4 classes, about 4.4 MB) and 
 
 ### Backend
 
-FecalVision has **no backend server** and **no database server**, by design. Every scan is analysed on the phone, and photos never leave it. That is what lets the app work offline in the coop and keeps farm data private.
+The backend has two parts:
+
+- **Machine learning (Python)**, run on the developers' computers. This is where the models are trained, tested, calibrated and exported for the app.
+- **Hosting and storage.** There is **no API server** and **no database server**, by design. Every scan is analysed on the phone, and photos never leave it. That is what lets the app work offline in the coop and keeps farm data private.
 
 | Technology | Used for |
 | --- | --- |
+| [Python](https://www.python.org/) | Language of the machine-learning pipeline: preparing the dataset, training, evaluation and calibration |
+| TensorFlow 2.20 + TensorFlow.js Converter | Training the models in Python and exporting them for the app (see Machine learning above) |
 | [Vercel](https://vercel.com/) | Static hosting of the built app over HTTPS |
 | IndexedDB (in the browser) | Scan history and cached model weights, stored on the phone only |
 | localStorage (in the browser) | Small settings: theme, tours already seen |
