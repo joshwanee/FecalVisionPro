@@ -53,7 +53,7 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       // Test the service worker with `npm run dev` too, not just after a build.
       devOptions: { enabled: true },
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.svg', 'favicon-32.png', 'apple-touch-icon.png'],
       manifest: {
         id: '/',
         name: 'FecalVision',
