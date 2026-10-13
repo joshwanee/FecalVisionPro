@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import CoachTour from './components/CoachTour';
 import DiagnosticsScreen from './components/DiagnosticsScreen';
 import DiseasesScreen from './components/DiseasesScreen';
+import GetStartedScreen from './components/GetStartedScreen';
 import HelpScreen from './components/HelpScreen';
 import HistoryScreen from './components/HistoryScreen';
 import OnboardingDialog from './components/OnboardingDialog';
@@ -20,6 +21,24 @@ import './tokens.css';
 import './styles.css';
 
 const DESKTOP_QUERY = '(min-width: 64rem)';
+const GET_STARTED_SEEN_KEY = 'fecalvision-get-started-seen';
+
+/** Storage can be unavailable (private mode): then it just shows once per session. */
+function hasSeenGetStarted() {
+  try {
+    return localStorage.getItem(GET_STARTED_SEEN_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function markGetStartedSeen() {
+  try {
+    localStorage.setItem(GET_STARTED_SEEN_KEY, '1');
+  } catch {
+    /* not remembered, but it has already been shown this session */
+  }
+}
 
 /**
  * App shell.
@@ -29,14 +48,21 @@ const DESKTOP_QUERY = '(min-width: 64rem)';
  *  - bottom navigation on phones, where the thumb is; on wide screens the same
  *    links live in a permanent sidebar instead
  *
- * The app always opens on Scan. The first time it opens on a device, a
- * "where to click" guide (CoachTour) points at the real buttons on screen.
- * Help has a "View guide again" link that opens the longer concept walkthrough
- * (OnboardingDialog) on demand - that one is no longer shown automatically,
- * since the coach tour already covers the same ground for new users.
+ * The very first time the app opens on a device, a full-screen "Get started"
+ * page takes over instead - loading has already begun underneath it
+ * (useModel() below runs regardless of which screen is shown), so the page
+ * just shows that real progress and offers to install. After that one time,
+ * the app always opens straight on Scan, where a "where to click" guide
+ * (CoachTour) points at the real buttons on screen, also once. Help has a
+ * "View guide again" link that opens the longer concept walkthrough
+ * (OnboardingDialog) on demand.
  *
  * While a task is under way (camera, reviewing, a result) the bottom navigation
  * steps out of the way, so the task has the whole screen.
+ *
+ * The device/browser back button steps back through the screens the user
+ * actually visited (Scan -> History -> Help -> ...) rather than leaving the
+ * app; see the history.pushState/popstate wiring below.
  */
 export default function App() {
   const [view, setView] = useState('scan');
@@ -45,6 +71,7 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [offline, setOffline] = useState(!navigator.onLine);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [showGetStarted, setShowGetStarted] = useState(() => !hasSeenGetStarted());
   const [isDesktop, setIsDesktop] = useState(() => window.matchMedia(DESKTOP_QUERY).matches);
   const menuButtonRef = useRef(null);
   const mainRef = useRef(null);
@@ -122,6 +149,24 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [toast]);
 
+  // Make the device/browser back button return to the previous screen
+  // (Scan, History, Help, ...) instead of leaving the app outright. Each
+  // navigate() call below pushes one history entry per section; popstate
+  // (back or forward) just follows it, without pushing anything itself.
+  useEffect(() => {
+    window.history.replaceState({ view: 'scan' }, '');
+  }, []);
+
+  useEffect(() => {
+    const onPopState = (e) => {
+      setView(e.state?.view ?? 'scan');
+      setMenuOpen(false);
+      setFocusMode(false);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
   const closeMenu = useCallback(() => {
     setMenuOpen(false);
     // Wait a frame: the button is inert until the closed menu has rendered.
@@ -130,13 +175,19 @@ export default function App() {
 
   const closeOnboarding = useCallback(() => setOnboardingOpen(false), []);
 
-  // Start the button guide once onboarding is out of the way, the first time
-  // only. A short delay lets the Scan screen's own buttons finish laying out.
+  const handleGetStarted = useCallback(() => {
+    markGetStartedSeen();
+    setShowGetStarted(false);
+  }, []);
+
+  // Start the button guide once Get started and onboarding are both out of
+  // the way, the first time only. A short delay lets the Scan screen's own
+  // buttons finish laying out.
   useEffect(() => {
-    if (onboardingOpen || shellTourSeen || view !== 'scan') return undefined;
+    if (showGetStarted || onboardingOpen || shellTourSeen || view !== 'scan') return undefined;
     const t = setTimeout(() => setShellTourActive(true), 300);
     return () => clearTimeout(t);
-  }, [onboardingOpen, shellTourSeen, view]);
+  }, [showGetStarted, onboardingOpen, shellTourSeen, view]);
 
   const finishShellTour = useCallback(() => {
     setShellTourActive(false);
@@ -144,6 +195,7 @@ export default function App() {
   }, [markShellTourSeen]);
 
   const navigate = (id) => {
+    if (id !== view) window.history.pushState({ view: id }, '');
     setView(id);
     setMenuOpen(false);
     setFocusMode(false);
@@ -170,6 +222,10 @@ export default function App() {
       )}
     </div>
   );
+
+  if (showGetStarted) {
+    return <GetStartedScreen model={model} offline={offline} offlineReady={offlineReady} install={install} onGetStarted={handleGetStarted} />;
+  }
 
   return (
     <div className={focusMode ? 'app app--task' : 'app'}>

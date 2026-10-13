@@ -116,6 +116,13 @@
   --focus: #7fb0ff;
 
   --shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 4px 14px rgb(0 0 0 / 25%);
+  /* A dark scrim over an already-dark page barely darkens it further, so a
+     dialog's backdrop and the dialog itself used to read as the same flat
+     colour with no visible "this is on top of the page" boundary. Black at
+     high opacity (rather than the light theme's dark-green tint) gives a
+     real, visible drop in brightness behind the dialog even on a dark page. */
+  --scrim: rgb(0 0 0 / 70%);
+  --shadow-overlay: 0 12px 40px rgb(0 0 0 / 55%), 0 0 0 1px rgb(255 255 255 / 8%);
 }
 
 /* Users who ask their device for less motion get none of ours. */

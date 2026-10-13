@@ -1405,11 +1405,14 @@ progress::-moz-progress-bar {
   border-top: 1px solid var(--line);
 }
 
-/* Confirmation dialog (built-in <dialog>) */
+/* Confirmation dialog (built-in <dialog>). The border matters most in dark
+ * mode, where a shadow alone barely shows against an already-dark page; it
+ * is what actually marks the dialog's edge once the backdrop dimming (below)
+ * has done its job. */
 .dialog {
   width: min(24rem, calc(100vw - 2rem));
   padding: var(--space-4);
-  border: 0;
+  border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--surface);
   color: var(--ink);
@@ -1550,6 +1553,44 @@ progress::-moz-progress-bar {
 
 .compare tbody tr:last-child > * {
   border-bottom: 0;
+}
+
+/* ---- get started: first-launch landing page, shown once -------------------- */
+
+.get-started {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: max(var(--space-5), env(safe-area-inset-top) + var(--space-4)) var(--gutter)
+    max(var(--space-5), env(safe-area-inset-bottom) + var(--space-4));
+  background: var(--bg);
+}
+
+.get-started__card {
+  width: 100%;
+  max-width: 26rem;
+  display: grid;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.get-started__card .callout,
+.get-started__card .install {
+  text-align: left;
+}
+
+.get-started__brand {
+  font-size: clamp(2rem, 9vw, var(--text-display));
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--brand);
+}
+
+.get-started__intro {
+  margin: calc(-1 * var(--space-2)) 0 var(--space-1);
+  color: var(--ink-2);
+  font-size: var(--text-body);
+  line-height: 1.5;
 }
 
 /* ---- theme toggle (top bar) -------------------------------------------- */
