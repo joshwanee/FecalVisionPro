@@ -1380,6 +1380,47 @@ progress::-moz-progress-bar {
   line-height: 1.25;
 }
 
+/* Disease-risk accent: a coloured edge plus a small icon, so a result that
+ * needs a vet stands out while scanning down the list, not just on reading
+ * it closely. Never colour-only - the icon shape carries the same meaning. */
+.row--alert {
+  border-left: 4px solid var(--alert);
+  padding-left: calc(var(--space-2) - 3px);
+}
+
+.row--ok {
+  border-left: 4px solid var(--brand);
+  padding-left: calc(var(--space-2) - 3px);
+}
+
+.row--caution {
+  border-left: 4px solid var(--caution-line);
+  padding-left: calc(var(--space-2) - 3px);
+}
+
+.row__status {
+  display: inline-flex;
+  vertical-align: -0.3em;
+  margin-right: 0.3rem;
+}
+
+.row__status .icon {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.row__status--alert {
+  color: var(--alert);
+}
+
+.row__status--ok {
+  color: var(--brand);
+}
+
+.row__status--caution {
+  color: var(--caution-line);
+}
+
 .row__sub,
 .row__when {
   color: var(--ink-2);

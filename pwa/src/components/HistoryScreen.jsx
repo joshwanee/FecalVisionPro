@@ -5,7 +5,18 @@ import { clearScans, deleteScan, listScans, recordToResult, restoreScan } from '
 import CoachTour from './CoachTour';
 import ConfirmDialog from './ConfirmDialog';
 import ResultPanel from './ResultPanel';
-import { ArrowLeftIcon, CheckIcon, ChevronIcon, DownloadIcon, TrashIcon } from './icons';
+import { ArrowLeftIcon, CheckIcon, ChevronIcon, DownloadIcon, TrashIcon, WaitIcon, WarnIcon } from './icons';
+
+/**
+ * Which colour a row's result gets, so a disease result stands out while
+ * scanning down the list, not just on reading it closely - matching the
+ * app's own colour rule (green = fine, amber = be careful, red = talk to a
+ * vet). Never colour-only: each tone also gets its own icon.
+ */
+function resultTone(r) {
+  if (!r.reported) return 'caution';
+  return r.label === 'Healthy' ? 'ok' : 'alert';
+}
 
 const UNCLEAR = '__unclear__';
 const HOLD_MS = 500; // press and hold this long on a scan to start selecting
@@ -433,11 +444,14 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan }) {
             <p className="empty">No scans match these filters.</p>
           ) : (
             <ul className="list">
-              {shown.map((r) => (
+              {shown.map((r) => {
+                const tone = resultTone(r);
+                const ToneIcon = tone === 'alert' ? WarnIcon : tone === 'ok' ? CheckIcon : WaitIcon;
+                return (
                 <li key={r.id}>
                   <button
                     type="button"
-                    className={`row${selecting && selected.has(r.id) ? ' row--selected' : ''}`}
+                    className={`row row--${tone}${selecting && selected.has(r.id) ? ' row--selected' : ''}`}
                     aria-pressed={selecting ? selected.has(r.id) : undefined}
                     onClick={() => onRowClick(r.id)}
                     {...hold.handlers(r.id)}
@@ -452,6 +466,9 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan }) {
                     />
                     <span className="row__text">
                       <span className="row__title">
+                        <span className={`row__status row__status--${tone}`} aria-hidden="true">
+                          <ToneIcon />
+                        </span>
                         {r.reported ? r.label : 'Not clear enough to call'}
                         {r.analysedAnyway && (
                           <span className="badge badge--caution" title="The dropping check was unsure about this photo">
@@ -478,7 +495,8 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan }) {
                     )}
                   </button>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
 

@@ -300,10 +300,10 @@ export default function ScanScreen({
             <WarnIcon />
             <div className="callout__grow">
               <h1 id="rejected-title" ref={titleRef} tabIndex={-1} className="rejected__title">
-                No dropping detected
+                Doesn&rsquo;t look like a dropping
               </h1>
               <p>
-                We couldn&rsquo;t find a chicken dropping in this photo. Point the camera at a single
+                This photo doesn&rsquo;t look like a chicken dropping. Point the camera at a single
                 dropping, move close so it fills the frame, and use good daylight.
               </p>
             </div>
