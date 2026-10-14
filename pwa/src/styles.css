@@ -877,7 +877,7 @@ progress::-moz-progress-bar {
   padding: 0.15rem 0.6rem;
   border-radius: 999px;
   background: var(--camera);
-  color: var(--ink);
+  color: white;
   font-size: var(--text-small);
   font-weight: 600;
   white-space: nowrap;
