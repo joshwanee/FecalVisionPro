@@ -46,6 +46,104 @@ The dropping check was tuned on validation photos to let through 98% of real dro
 - Shareable result reports.
 - Light and dark mode, a first-time guided tour, and large touch targets for use with one hand.
 
+## How it works
+
+### Overview
+
+FecalVision is a **static web app**. The server (Vercel) only hands out files: HTML, JavaScript, CSS, icons, the trained models and the WebAssembly binaries. Everything else happens inside the browser on the phone:
+
+```text
+            ┌───────────────────────── Vercel (HTTPS) ─────────────────────────┐
+            │  index.html · JS/CSS bundle · icons · models (.json/.bin) · .wasm │
+            └───────────────────────────────┬──────────────────────────────────┘
+                                            │ downloaded once, on the first online visit
+                                            ▼
+┌──────────────────────────────────── The phone ─────────────────────────────────────┐
+│                                                                                     │
+│  Service worker (Workbox) ── keeps a copy of every app file in Cache Storage        │
+│          │                    and answers requests from it when there is no signal  │
+│          ▼                                                                          │
+│  React UI ──► Camera (getUserMedia) ──► Canvas: quality checks, crop, resize        │
+│                                               │                                     │
+│                                               ▼                                     │
+│                         TensorFlow.js (WebGL GPU or WASM CPU)                       │
+│                           1. dropping check model  ──► "is this a dropping?"        │
+│                           2. disease model         ──► 4 class scores               │
+│                                               │                                     │
+│                                               ▼                                     │
+│  IndexedDB: scan history + cached model weights     localStorage: small settings    │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+There is no API call during a scan, so a scan works the same with or without internet.
+
+### What happens during a scan
+
+| Step | What happens | Technology doing it |
+| --- | --- | --- |
+| 1. Open the camera | The browser asks for camera permission and streams live video. Zoom and flashlight are used if the phone supports them. | `getUserMedia` (needs HTTPS, which Vercel provides) |
+| 2. Live photo checks | A few times per second, a frame is drawn to a small canvas and checked for brightness, sharpness and distance. The app tells you what to fix. | Canvas API ([src/lib/quality.js](pwa/src/lib/quality.js)) |
+| 3. Prepare the photo | The photo is decoded, centre-cropped to a square and resized to 224 × 224 pixels. | Canvas API ([src/lib/analysisInput.js](pwa/src/lib/analysisInput.js)) |
+| 4. Dropping check | The small gate model gives a "dropping or not" score. Below the threshold, the photo is refused, though the user can choose to analyse it anyway. | TensorFlow.js ([src/lib/gate.js](pwa/src/lib/gate.js)) |
+| 5. Disease model | The MobileNetV2 classifier scores the four classes. The scores are calibrated (temperature scaling) so the confidence shown is realistic. | TensorFlow.js ([src/lib/fecalvision.js](pwa/src/lib/fecalvision.js)) |
+| 6. Decide what to say | At ≥ 90% confidence the app names the class. Below that it says "Not clear enough to call" and gives retake tips. | React ([src/components/ResultPanel.jsx](pwa/src/components/ResultPanel.jsx)) |
+| 7. Save | The result, a small copy of the photo and all four scores are stored on the phone. | IndexedDB ([src/lib/history.js](pwa/src/lib/history.js)) |
+
+### How each part of the stack fits in
+
+- **React** draws every screen (Scan, History, Help, Disease guide, Diagnostics) and re-renders them as state changes, for example when the model finishes loading or a result arrives. Custom hooks in [pwa/src/hooks/](pwa/src/hooks/) keep browser features (camera, install, theme, offline status) apart from the screens.
+- **Vite** is only used while developing and building. `npm run build` turns the JSX and CSS into small, optimised files in `dist/`, and those files are what Vercel serves. Vite isn't part of the running app.
+- **TensorFlow.js** runs the two trained models in the browser. It can compute on the **GPU through WebGL** (fast) or the **CPU through WebAssembly** (slower, but always full precision). Many phone GPUs round numbers to lower precision, which can change a close result. So on first launch, [src/lib/backend.js](pwa/src/lib/backend.js) runs the same test inputs on both and only keeps WebGL if its answers match. The choice is saved, so the test runs once per device.
+- **Python + TensorFlow** are used only on the developers' computers, to train, evaluate and calibrate the models. The **TensorFlow.js Converter** then exports them as `model.json` plus binary weight files, which go into `pwa/public/`.
+- **IndexedDB** is the browser's built-in database. It holds the scan history (photos included) and a second copy of the model weights. The app also asks the browser for persistent storage (`navigator.storage.persist()`) so records aren't deleted when the phone runs low on space.
+- **localStorage** holds small values: theme, which tours were seen, the chosen TF.js backend, and whether the offline download has finished.
+- **The service worker, Workbox and the Web App Manifest** make the app work offline and installable. See the next section.
+- **Vercel** serves the built files over HTTPS. HTTPS is needed for the camera and for service workers. [pwa/vercel.json](pwa/vercel.json) also sends every URL to `index.html`, and it turns on cross-origin isolation, which is why every file, the font included, is self-hosted.
+
+### How the PWA works offline
+
+A **Progressive Web App (PWA)** is a website that can also behave like an installed app. Two browser features make this possible:
+
+1. **Service worker.** A script the browser keeps running in the background for this site, separate from the page. It sits between the app and the network and can answer any request from its own saved copy. FecalVision's service worker is generated at build time by **vite-plugin-pwa** using **Workbox**. It is registered on the first visit ([src/hooks/useOfflineReady.js](pwa/src/hooks/useOfflineReady.js)).
+2. **Web App Manifest.** A file that gives the app its name, icons, colours and `display: standalone` mode (no browser address bar). It is defined in [pwa/vite.config.js](pwa/vite.config.js).
+
+#### First visit (needs internet, once)
+
+1. The page loads normally from Vercel.
+2. The service worker installs and **precaches** every file the app needs into the browser's Cache Storage: HTML, JS, CSS, icons, the font, the two models in use (about 5 MB) and the `.wasm` files. Old comparison models in `public/` are left out on purpose (`EXCLUDED_MODEL_GLOBS` in `vite.config.js`).
+3. The disease model is loaded and also saved into IndexedDB. The dropping-check model is saved the same way.
+4. When the precache is complete **and** the model has loaded from the phone's own storage, the status pill changes to **"Works offline"**. From then on the app doesn't need the internet.
+
+#### Later visits, with or without signal
+
+- The service worker answers every request from the cache, so the app opens straight away even in airplane mode. Any URL (for example `/history`) falls back to the cached `index.html`, so every screen works offline.
+- Models load from IndexedDB first (`indexeddb://…`). If that copy is missing, they're fetched from `/model-…/`, and the service worker serves those files from its cache too. The two copies back each other up.
+- Scans, history, export and the disease guide all work offline. Only sharing to other apps may need a connection, depending on the app you share to.
+
+#### Updates
+
+The service worker uses `registerType: 'autoUpdate'`. When the phone is online, it checks for a newer build in the background, downloads it, and the new version is used **the next time the app is opened**. Scan history is not affected, because it lives in IndexedDB rather than in the app files. The build id under menu → Diagnostics shows which version is running.
+
+#### In the browser vs. installed
+
+Offline mode works the same way in both. The service worker and storage belong to the website's address, not to the icon. What changes is how you open it and how safe the stored data is:
+
+| | In a browser tab | Installed to the home screen / desktop |
+| --- | --- | --- |
+| How to open it offline | Type or bookmark the same address in the **same browser** | Tap the app icon |
+| Window | Normal browser tab with an address bar | Own full-screen window with no browser bar (`display: standalone`), listed among the phone's apps |
+| Offline files and models | Cached by the service worker | Same cache, same service worker |
+| Scan history | Stored in that browser's IndexedDB | **Android / desktop:** shared with the browser (same Chrome/Edge storage). **iPhone/iPad:** the installed app has its own storage, separate from Safari, so scans made in Safari don't show up in the installed app |
+| Risk of the browser deleting data | Higher. Safari can clear a site's stored data after about 7 days without a visit, and any browser may clear it when the phone runs low on space | Lower. Installed apps are treated as more important, and persistent storage is more likely to be granted |
+
+**Recommendation:** install the app before relying on it in the field.
+
+#### How installing works
+
+- **Android, desktop Chrome and Edge:** when the site qualifies (HTTPS, manifest, service worker), the browser fires a `beforeinstallprompt` event. [src/hooks/useInstall.js](pwa/src/hooks/useInstall.js) holds on to it and shows an **Install** button in the menu, which opens the browser's install dialog.
+- **iPhone and iPad:** Safari doesn't offer an install prompt, so the app shows instructions instead: **Share → Add to Home Screen**.
+- Once installed, the app detects that it's running standalone (`display-mode: standalone`) and hides the install button.
+
 ## Repository layout
 
 ```text
