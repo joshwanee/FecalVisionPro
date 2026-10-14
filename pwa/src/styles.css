@@ -1995,23 +1995,6 @@ progress::-moz-progress-bar {
   background: var(--surface);
 }
 
-/* ---- diagnostics link in the menu footer -------------------------------------- */
-
-.diagnostics-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--tap-min);
-  padding: 0 var(--space-1);
-  border: 0;
-  background: transparent;
-  color: var(--brand);
-  font: inherit;
-  font-size: var(--text-small);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-  cursor: pointer;
-}
-
 /* ---- diagnostics screen: label/value rows, deliberately plain and screenshot-friendly */
 
 .diagnostics {

@@ -133,12 +133,7 @@ export default function Sidebar({
           treating birds.
         </p>
         <PrivacyNote />
-        <p className="fine">
-          Version {BUILD} &middot;{' '}
-          <button type="button" className="diagnostics-link" onClick={() => onNavigate('diagnostics')}>
-            Diagnostics
-          </button>
-        </p>
+        <p className="fine">Version {BUILD}</p>
       </div>
     </aside>
   );

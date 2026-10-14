@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFirstVisitTour } from '../hooks/useFirstVisitTour';
+import { useLongPress } from '../hooks/useLongPress';
 import { buildCsv, buildJson, buildZip, download, exportName, photoFileName } from '../lib/export';
 import { clearScans, deleteScan, listScans, recordToResult, restoreScan } from '../lib/history';
 import CoachTour from './CoachTour';
@@ -19,8 +20,6 @@ function resultTone(r) {
 }
 
 const UNCLEAR = '__unclear__';
-const HOLD_MS = 500; // press and hold this long on a scan to start selecting
-const HOLD_SLOP = 10; // px a finger may drift before it counts as a scroll
 const DAY = 24 * 60 * 60 * 1000;
 
 const DATE_OPTIONS = [
@@ -42,55 +41,6 @@ function passesDate(record, filter) {
   if (filter === 'all') return true;
   if (filter === 'today') return new Date(record.timestamp).toDateString() === new Date().toDateString();
   return record.timestamp >= Date.now() - Number(filter) * DAY;
-}
-
-/**
- * Press-and-hold on a list row. Returns pointer handlers for a row, plus
- * `consumeClick()`, which says whether the click that ends a hold should be
- * ignored (the hold already did something).
- */
-function useLongPress(onHold) {
-  const timer = useRef(null);
-  const start = useRef(null);
-  const held = useRef(false);
-
-  const cancel = () => {
-    clearTimeout(timer.current);
-    timer.current = null;
-  };
-
-  const handlers = (id) => ({
-    onPointerDown: (e) => {
-      if (e.button !== 0) return;
-      held.current = false;
-      start.current = { x: e.clientX, y: e.clientY };
-      cancel();
-      timer.current = setTimeout(() => {
-        timer.current = null;
-        held.current = true;
-        navigator.vibrate?.(30);
-        onHold(id);
-      }, HOLD_MS);
-    },
-    onPointerMove: (e) => {
-      if (!timer.current || !start.current) return;
-      if (Math.hypot(e.clientX - start.current.x, e.clientY - start.current.y) > HOLD_SLOP) cancel();
-    },
-    onPointerUp: cancel,
-    onPointerCancel: cancel,
-    onPointerLeave: cancel,
-    // Phones open a context menu on a long press; the hold replaces it.
-    onContextMenu: (e) => e.preventDefault(),
-  });
-
-  const consumeClick = () => {
-    const wasHeld = held.current;
-    held.current = false;
-    return wasHeld;
-  };
-
-  useEffect(() => () => clearTimeout(timer.current), []);
-  return { handlers, consumeClick };
 }
 
 /** Pick an export format for the selected scans. */

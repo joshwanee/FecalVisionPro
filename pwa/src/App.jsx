@@ -14,6 +14,7 @@ import { NAV_ITEMS } from './components/navItems';
 import { useFirstVisitTour } from './hooks/useFirstVisitTour';
 import { useInputMode } from './hooks/useInputMode';
 import { useInstall } from './hooks/useInstall';
+import { useLongPress } from './hooks/useLongPress';
 import { useModel } from './hooks/useModel';
 import { useOfflineReady } from './hooks/useOfflineReady';
 import { useTheme } from './hooks/useTheme';
@@ -202,6 +203,14 @@ export default function App() {
     mainRef.current?.scrollTo({ top: 0 });
   };
 
+  // Diagnostics is not a screen a farmer needs; it is reached only by
+  // pressing and holding the light/dark toggle, not through any visible
+  // link. A normal tap still just switches the theme.
+  const diagnosticsHold = useLongPress(() => navigate('diagnostics'));
+  const onThemeClick = () => {
+    if (!diagnosticsHold.consumeClick()) toggleTheme();
+  };
+
   const showToast = useCallback((t) => setToast(t), []);
   const openMenu = useCallback(() => setMenuOpen(true), []);
 
@@ -253,7 +262,8 @@ export default function App() {
           type="button"
           className="theme-toggle"
           aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-          onClick={toggleTheme}
+          onClick={onThemeClick}
+          {...diagnosticsHold.handlers()}
         >
           {dark ? <SunIcon size={20} /> : <MoonIcon size={20} />}
         </button>
