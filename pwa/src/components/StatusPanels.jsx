@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { MODEL_DOWNLOAD_MB } from '../content/performance';
 import { describeBackend } from '../lib/backend';
 import { getBackendInfo } from '../lib/fecalvision';
@@ -22,10 +23,37 @@ export function StatusPill({ offline, offlineReady }) {
     icon = <WarnIcon />;
   }
 
+  const [expanded, setExpanded] = useState(true);
+  const timerRef = useRef(null);
+
+  // Reset to expanded + restart 3s timer whenever status changes
+  useEffect(() => {
+    setExpanded(true);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setExpanded(false), 3000);
+    return () => clearTimeout(timerRef.current);
+  }, [tone, text]);
+
+  const toggle = () => {
+    setExpanded((v) => {
+      if (!v) {
+        // Re-expand and restart auto-collapse
+        clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setExpanded(false), 3000);
+      }
+      return !v;
+    });
+  };
+
   return (
-    <span className={`pill pill--${tone}`} role="status">
+    <span
+      className={`pill pill--${tone}${expanded ? '' : ' pill--collapsed'}`}
+      role="status"
+      onClick={toggle}
+      style={{ cursor: 'pointer' }}
+    >
       {icon}
-      <span>{text}</span>
+      <span className="pill__label">{text}</span>
     </span>
   );
 }

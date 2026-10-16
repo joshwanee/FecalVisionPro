@@ -141,7 +141,7 @@ h2:focus {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--text-large);
+  font-size: clamp(0.95rem, 4vw, var(--text-large));
   font-weight: 700;
   letter-spacing: -0.01em;
 }
@@ -181,17 +181,30 @@ h2:focus {
   gap: var(--space-1);
   min-height: 2.25rem;
   min-width: 0;
-  flex-shrink: 1;
+  flex-shrink: 0;
   padding: 0 0.75rem;
   border-radius: 999px;
   font-size: var(--text-small);
   font-weight: 600;
   white-space: nowrap;
+  transition: padding var(--ease);
 }
 
-.pill span {
+.pill__label {
   overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: 12rem;
+  opacity: 1;
+  transition: max-width 0.35s ease, opacity 0.35s ease, margin 0.35s ease;
+}
+
+.pill--collapsed .pill__label {
+  max-width: 0;
+  opacity: 0;
+  margin: 0;
+}
+
+.pill--collapsed {
+  padding: 0 0.55rem;
 }
 
 .pill .icon {
