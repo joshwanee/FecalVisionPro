@@ -25,14 +25,12 @@ function commitId() {
  */
 const EXCLUDED_MODEL_GLOBS = ['**/model-ablation/**', '**/model/**', '**/model-cap2000_weighted/**'];
 
-// The WASM backend can use multiple CPU threads, but only inside a
-// "cross-origin isolated" page - a browser security mode a site opts into by
-// promising it embeds nothing from another origin (true here: everything is
-// self-hosted, confirmed by the absence of any CDN reference in this app).
-// These two headers are what turn that mode on. Without them WASM still
-// works, just single-threaded and therefore slower - it never fails outright.
+// Keep the opener relationship required by Firebase Google popup auth. This
+// means the page is not cross-origin isolated, so WASM uses its safe
+// single-threaded fallback instead of breaking sign-in.
 const CROSS_ORIGIN_ISOLATION_HEADERS = {
-  'Cross-Origin-Opener-Policy': 'same-origin',
+  // Firebase Google popup auth needs the opener relationship to remain open.
+  'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
   'Cross-Origin-Embedder-Policy': 'require-corp',
 };
 
@@ -53,7 +51,7 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       // Test the service worker with `npm run dev` too, not just after a build.
       devOptions: { enabled: true },
-      includeAssets: ['favicon.svg', 'favicon-32.png', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         id: '/',
         name: 'FecalVision',

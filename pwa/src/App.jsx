@@ -5,12 +5,14 @@ import DiseasesScreen from './components/DiseasesScreen';
 import GetStartedScreen from './components/GetStartedScreen';
 import HelpScreen from './components/HelpScreen';
 import HistoryScreen from './components/HistoryScreen';
+import LandingPage from './components/LandingPage';
 import OnboardingDialog from './components/OnboardingDialog';
 import ScanScreen from './components/ScanScreen';
 import Sidebar from './components/Sidebar';
 import { StatusPill } from './components/StatusPanels';
 import { MenuIcon, MoonIcon, SunIcon } from './components/icons';
 import { NAV_ITEMS } from './components/navItems';
+import { useAuth } from './hooks/useAuth';
 import { useFirstVisitTour } from './hooks/useFirstVisitTour';
 import { useInputMode } from './hooks/useInputMode';
 import { useInstall } from './hooks/useInstall';
@@ -88,6 +90,19 @@ export default function App() {
   const helpLinkRef = useRef(null);
   const openCameraRef = useRef(null);
   const choosePhotoRef = useRef(null);
+
+  // Authentication
+  const {
+    user,
+    isGuest,
+    loading: authLoading,
+    authError,
+    signingIn,
+    loginWithGoogle,
+    continueAsGuest,
+    logout,
+  } = useAuth();
+  const isAuthenticated = !!user || isGuest;
 
   // "Where to click" guide: points at the real buttons on screen, once per
   // device, as soon as the Scan screen's own buttons are ready.
@@ -232,8 +247,36 @@ export default function App() {
     </div>
   );
 
+  // Show a loading spinner while auth state resolves.
+  if (authLoading) {
+    return (
+      <div className="lp" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <h1 className="lp__title" style={{ fontSize: '2.5rem', fontWeight: 700 }}>FecalVision</h1>
+          <p className="lp__tagline" style={{ fontSize: '12px', letterSpacing: '2px', fontWeight: 600 }}>Loading…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show the landing page if user is not authenticated.
+  if (!isAuthenticated) {
+    return (
+      <>
+        <LandingPage
+          onLoginGoogle={loginWithGoogle}
+          authError={authError}
+          signingIn={signingIn}
+          onContinueGuest={continueAsGuest}
+          onViewGuide={() => setOnboardingOpen(true)}
+        />
+        <OnboardingDialog open={onboardingOpen} onClose={closeOnboarding} />
+      </>
+    );
+  }
+
   if (showGetStarted) {
-    return <GetStartedScreen model={model} offline={offline} offlineReady={offlineReady} install={install} onGetStarted={handleGetStarted} />;
+    return <GetStartedScreen model={model} offline={offline} offlineReady={offlineReady} install={install} onGetStarted={handleGetStarted} onViewGuide={() => setOnboardingOpen(true)} />;
   }
 
   return (
@@ -283,6 +326,9 @@ export default function App() {
           onInputMode={setInputMode}
           historyLinkRef={historyLinkRef}
           helpLinkRef={helpLinkRef}
+          user={user}
+          isGuest={isGuest}
+          onLogout={logout}
         />
         <div className="scrim" hidden={!menuOpen} onClick={closeMenu} />
 

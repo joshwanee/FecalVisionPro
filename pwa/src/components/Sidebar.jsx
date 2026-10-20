@@ -3,7 +3,7 @@ import { InstallPanel, ModelStatus, PrivacyNote } from './StatusPanels';
 import { ACTIVE_MODEL } from '../content/models';
 import { INPUT_MODES } from '../lib/analysisInput';
 import { BUILD } from '../lib/buildInfo';
-import { CloseIcon } from './icons';
+import { CloseIcon, LogoutIcon } from './icons';
 import { NAV_ITEMS } from './navItems';
 
 /**
@@ -28,6 +28,9 @@ export default function Sidebar({
   onInputMode,
   historyLinkRef,
   helpLinkRef,
+  user,
+  isGuest,
+  onLogout,
 }) {
   const ref = useRef(null);
   const closeRef = useRef(null);
@@ -58,6 +61,9 @@ export default function Sidebar({
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
+  const displayName = user?.displayName || (isGuest ? 'Guest' : null);
+  const email = user?.email || null;
+
   return (
     <aside
       ref={ref}
@@ -73,6 +79,17 @@ export default function Sidebar({
           <CloseIcon />
         </button>
       </div>
+
+      {/* User info */}
+      {displayName && (
+        <div className="sidebar__user">
+          <img className="sidebar__avatar" src="/fecalvision-avatar-removebg.png" alt="" />
+          <div className="sidebar__user-info">
+            <span className="sidebar__user-name">{displayName}</span>
+            {email && <span className="sidebar__user-email">{email}</span>}
+          </div>
+        </div>
+      )}
 
       <nav aria-label="Sections">
         <ul className="sidebar__nav">
@@ -134,6 +151,18 @@ export default function Sidebar({
         </p>
         <PrivacyNote />
         <p className="fine">Version {BUILD}</p>
+
+        {/* Logout button */}
+        {onLogout && (
+          <button
+            type="button"
+            className="sidebar__logout"
+            onClick={onLogout}
+          >
+            <LogoutIcon size={20} />
+            <span>Logout</span>
+          </button>
+        )}
       </div>
     </aside>
   );

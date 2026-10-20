@@ -2049,3 +2049,262 @@ progress::-moz-progress-bar {
   font-size: var(--text-small);
   color: var(--ink-2);
 }
+
+
+/* ---- landing page: auth gate shown before the app ----------------------- */
+
+.lp {
+  background: linear-gradient(180deg, #eef6f1 0%, #ffffff 55%, #ffffff 100%);
+  position: relative;
+}
+
+.lp__topbar {
+  position: absolute;
+  top: max(var(--space-2), env(safe-area-inset-top));
+  right: max(var(--space-2), env(safe-area-inset-right));
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  z-index: 1;
+}
+
+.lp__topbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--tap-min);
+  padding: 0 var(--space-3);
+  border: 1px solid #e2ebe6;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #173c30;
+  font-weight: 600;
+  font-size: var(--text-small);
+  cursor: pointer;
+}
+
+.lp__topbtn:active {
+  background: #eef6f1;
+}
+
+.lp__theme-toggle {
+  display: grid;
+  place-items: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #173c30;
+  cursor: pointer;
+}
+
+.lp__theme-toggle:hover,
+.lp__theme-toggle:active {
+  background: #eef6f1;
+}
+
+.lp__title {
+  color: #173c30;
+}
+
+.lp__tagline {
+  color: #2f7a5f;
+}
+
+.lp__desc {
+  color: #5c6b64;
+}
+
+.lp__btn-google {
+  background: #173c30;
+  color: #ffffff;
+}
+
+.lp__btn-google:active {
+  background: #0f2920;
+}
+
+.lp__btn-guest {
+  border: 1.5px solid #173c30;
+  background: #ffffff;
+  color: #173c30;
+}
+
+.lp__btn-guest:active {
+  background: #eef6f1;
+}
+
+.lp__card {
+  background: #ffffff;
+  border: 1px solid #e2ebe6;
+  box-shadow: 0 1px 3px rgba(23, 60, 48, 0.06);
+}
+
+.lp__card-icon {
+  color: #2f7a5f;
+}
+
+.lp__card-text {
+  color: #4a5a53;
+}
+
+.lp__footer {
+  color: #8a9992;
+}
+
+/* ---- landing page: dark mode overrides ----------------------------------- */
+
+:root[data-theme='dark'] .lp {
+  background: linear-gradient(180deg, #0f1f18 0%, var(--bg) 55%, var(--bg) 100%);
+}
+
+:root[data-theme='dark'] .lp__topbtn {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+:root[data-theme='dark'] .lp__topbtn:active {
+  background: var(--surface-sunken);
+}
+
+:root[data-theme='dark'] .lp__theme-toggle {
+  color: var(--ink);
+}
+
+:root[data-theme='dark'] .lp__theme-toggle:hover,
+:root[data-theme='dark'] .lp__theme-toggle:active {
+  background: var(--surface-sunken);
+}
+
+:root[data-theme='dark'] .lp__title {
+  color: var(--ink);
+}
+
+:root[data-theme='dark'] .lp__tagline {
+  color: var(--brand);
+}
+
+:root[data-theme='dark'] .lp__desc {
+  color: var(--ink-2);
+}
+
+:root[data-theme='dark'] .lp__btn-google {
+  background: var(--brand);
+  color: var(--ink-on-brand);
+}
+
+:root[data-theme='dark'] .lp__btn-google:active {
+  background: var(--brand-strong);
+}
+
+:root[data-theme='dark'] .lp__btn-guest {
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+:root[data-theme='dark'] .lp__btn-guest:active {
+  background: var(--surface-sunken);
+}
+
+:root[data-theme='dark'] .lp__card {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+:root[data-theme='dark'] .lp__card-icon {
+  color: var(--brand);
+}
+
+:root[data-theme='dark'] .lp__card-text {
+  color: var(--ink-2);
+}
+
+:root[data-theme='dark'] .lp__footer {
+  color: var(--ink-2);
+}
+
+/* ---- sidebar user info and logout ---------------------------------------- */
+
+.sidebar__user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--brand-soft);
+  border: 1px solid var(--line);
+}
+
+.sidebar__avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid var(--brand);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  transition: transform 0.2s ease;
+}
+
+.sidebar__avatar:hover {
+  transform: scale(1.15);
+}
+
+.sidebar__avatar--placeholder {
+  display: grid;
+  place-items: center;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-weight: 700;
+  font-size: var(--text-large);
+}
+
+.sidebar__user-info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sidebar__user-name {
+  font-weight: 700;
+  font-size: var(--text-body);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--brand);
+}
+
+.sidebar__user-email {
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--tap);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--alert);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--alert);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--ease);
+}
+
+.sidebar__logout:hover,
+.sidebar__logout:active {
+  background: var(--alert-soft);
+}

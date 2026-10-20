@@ -241,3 +241,11 @@ export const RewindIcon = ({ size }) => (
     <path d="M4 4v4.5h4.5M12 8v4l3 2" />
   </Icon>
 );
+
+/** Arrow out of a door: "sign out". */
+export const LogoutIcon = ({ size }) => (
+  <Icon size={size}>
+    <path d="M10 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H10" />
+    <path d="M14 12H22M18 8l4 4-4 4" />
+  </Icon>
+);
