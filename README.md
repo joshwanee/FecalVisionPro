@@ -1,6 +1,6 @@
 # FecalVision
 
-**From droppings to decisions.** FecalVision is a mobile web app that screens photos of chicken droppings for signs of three common poultry diseases. It runs entirely on the phone: photos are never uploaded, and once it has been opened online one time it works with no signal, in the coop.
+**From droppings to decisions.** FecalVision is a mobile web app that screens photos of chicken droppings for signs of three common poultry diseases. Scans are analysed on the phone and saved locally first; when online, scan history and its thumbnail sync to the user's private Supabase account. The app can still scan and view cached history offline.
 
 > FecalVision is a screening aid, not a diagnosis. Always have a veterinarian confirm a result before treating birds, and call one straight away if birds are sick or dying.
 
@@ -23,7 +23,7 @@ The app's **Disease guide** (under Help) explains each disease: general signs, h
 2. **Dropping check.** A small model first asks *"is there a chicken dropping in this photo at all?"*, so a photo of a shoe or a hand is refused instead of being given a disease name.
 3. **Disease model.** A MobileNetV2-based classifier scores the four classes.
 4. **Honest answers.** The app only names a result when it is at least 90% confident. Otherwise it says *"Not clear enough to call"* and suggests how to retake the photo. It also flags close calls between two classes.
-5. **History.** Every scan is saved on the phone with its photo and scores. You can filter, select, export (CSV, ZIP with photos, or JSON) or delete scans.
+5. **History.** Every scan is saved on the phone with its photo and scores, then synced to the user's private Supabase cloud history when online. You can filter, select, export (CSV, ZIP with photos, or JSON) or delete scans.
 
 ## Results
 
@@ -41,7 +41,7 @@ The dropping check was tuned on validation photos to let through 98% of real dro
 
 - Works fully **offline** after the first visit. The models, about 5 MB in total, are stored on the phone.
 - **Installable** on Android, iPhone and desktop, so it opens like a normal app.
-- **Private.** Analysis happens on the phone. There is no account, and nothing is uploaded.
+- **Account-scoped cloud history.** Analysis happens on the phone. Scan results and thumbnails sync to a private Supabase account when online; guest sessions use anonymous accounts. Cloud history is protected by per-account row and storage policies.
 - Camera **zoom** and **flashlight** (where the phone allows it), or pick an existing photo from the gallery.
 - Shareable result reports.
 - Light and dark mode, a first-time guided tour, and large touch targets for use with one hand.
@@ -56,7 +56,7 @@ FecalVision is a **static web app**. The server (Vercel) only hands out files: H
             ┌───────────────────────── Vercel (HTTPS) ─────────────────────────┐
             │  index.html · JS/CSS bundle · icons · models (.json/.bin) · .wasm │
             └───────────────────────────────┬──────────────────────────────────┘
-                                            │ downloaded once, on the first online visit
+                                            │ app files downloaded once; history syncs when online
                                             ▼
 ┌──────────────────────────────────── The phone ─────────────────────────────────────┐
 │                                                                                     │
@@ -71,11 +71,14 @@ FecalVision is a **static web app**. The server (Vercel) only hands out files: H
 │                           2. disease model         ──► 4 class scores               │
 │                                               │                                     │
 │                                               ▼                                     │
-│  IndexedDB: scan history + cached model weights     localStorage: small settings    │
+│  IndexedDB: local scan history + cached models      localStorage: small settings     │
 └─────────────────────────────────────────────────────────────────────────────────────┘
+                      │ when online and authenticated
+                      ▼
+             Supabase Auth + private scan table + private photo bucket
 ```
 
-There is no API call during a scan, so a scan works the same with or without internet.
+Inference uses no network, so scanning works the same with or without internet. Cloud history sync runs separately when connectivity is available.
 
 ### What happens during a scan
 
@@ -87,7 +90,7 @@ There is no API call during a scan, so a scan works the same with or without int
 | 4. Dropping check | The small gate model gives a "dropping or not" score. Below the threshold, the photo is refused, though the user can choose to analyse it anyway. | TensorFlow.js ([src/lib/gate.js](pwa/src/lib/gate.js)) |
 | 5. Disease model | The MobileNetV2 classifier scores the four classes. The scores are calibrated (temperature scaling) so the confidence shown is realistic. | TensorFlow.js ([src/lib/fecalvision.js](pwa/src/lib/fecalvision.js)) |
 | 6. Decide what to say | At ≥ 90% confidence the app names the class. Below that it says "Not clear enough to call" and gives retake tips. | React ([src/components/ResultPanel.jsx](pwa/src/components/ResultPanel.jsx)) |
-| 7. Save | The result, a small copy of the photo and all four scores are stored on the phone. | IndexedDB ([src/lib/history.js](pwa/src/lib/history.js)) |
+| 7. Save | The result, a small copy of the photo and all four scores are saved locally, then synced to the user's private cloud account when online. | IndexedDB + Supabase ([src/lib/history.js](pwa/src/lib/history.js)) |
 
 ### How each part of the stack fits in
 
@@ -133,7 +136,7 @@ Offline mode works the same way in both. The service worker and storage belong t
 | How to open it offline | Type or bookmark the same address in the **same browser** | Tap the app icon |
 | Window | Normal browser tab with an address bar | Own full-screen window with no browser bar (`display: standalone`), listed among the phone's apps |
 | Offline files and models | Cached by the service worker | Same cache, same service worker |
-| Scan history | Stored in that browser's IndexedDB | **Android / desktop:** shared with the browser (same Chrome/Edge storage). **iPhone/iPad:** the installed app has its own storage, separate from Safari, so scans made in Safari don't show up in the installed app |
+| Scan history | Saved to IndexedDB first and synced to the signed-in Supabase account when online | Cached history is available offline; guest sessions use an anonymous account |
 | Risk of the browser deleting data | Higher. Safari can clear a site's stored data after about 7 days without a visit, and any browser may clear it when the phone runs low on space | Lower. Installed apps are treated as more important, and persistent storage is more likely to be granted |
 
 **Recommendation:** install the app before relying on it in the field.
@@ -200,14 +203,15 @@ The app runs two models: a **disease classifier** (4 classes, about 4.4 MB) and 
 The backend has two parts:
 
 - **Machine learning (Python)**, run on the developers' computers. This is where the models are trained, tested, calibrated and exported for the app.
-- **Hosting and storage.** There is **no API server** and **no database server**, by design. Every scan is analysed on the phone, and photos never leave it. That is what lets the app work offline in the coop and keeps farm data private.
+- **Hosting and storage.** There is no custom API server. Supabase provides authentication, a per-user scan-history table and a private photo bucket. Inference still runs on the phone; scans are saved locally first and synced when online.
 
 | Technology | Used for |
 | --- | --- |
 | [Python](https://www.python.org/) | Language of the machine-learning pipeline: preparing the dataset, training, evaluation and calibration |
 | TensorFlow 2.20 + TensorFlow.js Converter | Training the models in Python and exporting them for the app (see Machine learning above) |
 | [Vercel](https://vercel.com/) | Static hosting of the built app over HTTPS |
-| IndexedDB (in the browser) | Scan history and cached model weights, stored on the phone only |
+| Supabase Auth, Postgres and Storage | Sign-in, per-account scan history and private scan thumbnails |
+| IndexedDB (in the browser) | Offline scan-history cache and cached model weights |
 | localStorage (in the browser) | Small settings: theme, tours already seen |
 
 ### Offline and installable app (PWA)

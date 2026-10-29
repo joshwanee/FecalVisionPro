@@ -98,9 +98,10 @@ export default function App() {
     loading: authLoading,
     authError,
     signingIn,
+    syncStatus,
+    syncError,
     loginWithGoogle,
     continueAsGuest,
-    logout,
   } = useAuth();
   const isAuthenticated = !!user || isGuest;
 
@@ -328,7 +329,11 @@ export default function App() {
           helpLinkRef={helpLinkRef}
           user={user}
           isGuest={isGuest}
-          onLogout={logout}
+          syncStatus={syncStatus}
+          syncError={syncError}
+          authError={authError}
+          signingIn={signingIn}
+          onLinkGoogle={loginWithGoogle}
         />
         <div className="scrim" hidden={!menuOpen} onClick={closeMenu} />
 
@@ -352,6 +357,7 @@ export default function App() {
               showToast={showToast}
               onFocusChange={setFocusMode}
               onGoScan={() => navigate('scan')}
+              userId={user?.id ?? null}
             />
           )}
           {view === 'diseases' && <DiseasesScreen onBack={() => navigate('help')} />}

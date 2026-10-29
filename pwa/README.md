@@ -12,6 +12,10 @@ npm install
 
 Run `npm install` again whenever `package.json` changes (after a pull, for example). If you skip it, Vite fails with errors like `Failed to resolve import "@tensorflow/tfjs-backend-wasm"`.
 
+Copy `.env.example` to `.env` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from your Supabase project's API settings. In Supabase, enable Google under **Authentication → Sign In / Providers**, configure its Google OAuth credentials, and add your app's origin to **Authentication → URL Configuration → Redirect URLs**. The app returns to the current origin after sign-in.
+
+To enable cloud scan history, enable **Anonymous Sign-Ins** under **Authentication → Sign In / Providers**, then run [`supabase/setup-scan-cloud.sql`](supabase/setup-scan-cloud.sql) in the Supabase SQL Editor. The app keeps scans and photos in IndexedDB first, then syncs them to the private `scan-images` bucket and `scan_history` table whenever online. Row-level policies scope cloud rows and images to the current Supabase account. Supabase sessions persist in browser storage, so reopening the app restores the active Google account or guest session. Guest mode is also remembered per browser, and its anonymous session is saved separately. There is no in-app logout button: choose an account once, then use **Transfer guest scans to Google** to copy guest history to Google. The guest originals remain under the guest account; scans made after Google sign-in are saved to Google. To end the saved session, clear this site's browser data or revoke the app session in Supabase Auth.
+
 ## Scripts
 
 | Command | What it does |
@@ -72,7 +76,8 @@ pwa/
 | `backend.js` | Chooses WebGL or WebAssembly per device by measuring numeric drift |
 | `quality.js` | Live light, focus and distance checks on camera frames |
 | `analysisInput.js` | Decodes photos and chooses which part the model sees |
-| `history.js` | Scan history in IndexedDB (on the device only) |
+| `history.js` | Local-first scan history and Supabase cloud synchronization |
+| `supabase.js` | Supabase client for authentication, database and storage |
 | `export.js`, `zip.js` | CSV / JSON / ZIP export |
 | `report.js` | The shareable result image |
 

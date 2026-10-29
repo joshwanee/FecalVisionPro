@@ -25,12 +25,10 @@ function commitId() {
  */
 const EXCLUDED_MODEL_GLOBS = ['**/model-ablation/**', '**/model/**', '**/model-cap2000_weighted/**'];
 
-// Keep the opener relationship required by Firebase Google popup auth. This
-// means the page is not cross-origin isolated, so WASM uses its safe
-// single-threaded fallback instead of breaking sign-in.
+// OAuth returns through a full-page redirect, so development can use the same
+// cross-origin isolation policy as the Vercel deployment.
 const CROSS_ORIGIN_ISOLATION_HEADERS = {
-  // Firebase Google popup auth needs the opener relationship to remain open.
-  'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+  'Cross-Origin-Opener-Policy': 'same-origin',
   'Cross-Origin-Embedder-Policy': 'require-corp',
 };
 

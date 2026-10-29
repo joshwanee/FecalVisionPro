@@ -3,7 +3,7 @@ import { InstallPanel, ModelStatus, PrivacyNote } from './StatusPanels';
 import { ACTIVE_MODEL } from '../content/models';
 import { INPUT_MODES } from '../lib/analysisInput';
 import { BUILD } from '../lib/buildInfo';
-import { CloseIcon, LogoutIcon } from './icons';
+import { CloseIcon } from './icons';
 import { NAV_ITEMS } from './navItems';
 
 /**
@@ -30,7 +30,11 @@ export default function Sidebar({
   helpLinkRef,
   user,
   isGuest,
-  onLogout,
+  syncStatus,
+  syncError,
+  authError,
+  signingIn,
+  onLinkGoogle,
 }) {
   const ref = useRef(null);
   const closeRef = useRef(null);
@@ -61,7 +65,10 @@ export default function Sidebar({
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  const displayName = user?.displayName || (isGuest ? 'Guest' : null);
+  const displayName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    (isGuest ? 'Guest' : user?.email || null);
   const email = user?.email || null;
 
   return (
@@ -88,6 +95,23 @@ export default function Sidebar({
             <span className="sidebar__user-name">{displayName}</span>
             {email && <span className="sidebar__user-email">{email}</span>}
           </div>
+        </div>
+      )}
+      {syncStatus && syncStatus !== 'idle' && (
+        <p className="sidebar__sync" role="status">
+          {syncStatus === 'syncing' && 'Syncing scan history…'}
+          {syncStatus === 'synced' && 'Scan history synced to cloud.'}
+          {syncStatus === 'offline' && 'Offline — scans are queued to sync.'}
+          {syncStatus === 'error' && `Cloud sync failed: ${syncError || 'unknown error'}. Scans remain on this device.`}
+        </p>
+      )}
+      {isGuest && onLinkGoogle && (
+        <div className="sidebar__account-actions">
+          <button type="button" className="sidebar__link-account" onClick={onLinkGoogle} disabled={signingIn}>
+            {signingIn ? 'Copying scans and signing in…' : 'Transfer guest scans to Google'}
+          </button>
+          <p className="fine">Guest scans are copied to Google. The original guest history remains in the guest account.</p>
+          {authError && <p className="sidebar__account-error" role="alert">{authError}</p>}
         </div>
       )}
 
@@ -151,18 +175,6 @@ export default function Sidebar({
         </p>
         <PrivacyNote />
         <p className="fine">Version {BUILD}</p>
-
-        {/* Logout button */}
-        {onLogout && (
-          <button
-            type="button"
-            className="sidebar__logout"
-            onClick={onLogout}
-          >
-            <LogoutIcon size={20} />
-            <span>Logout</span>
-          </button>
-        )}
       </div>
     </aside>
   );

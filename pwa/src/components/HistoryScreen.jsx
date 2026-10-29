@@ -86,7 +86,7 @@ function ExportDialog({ open, count, onPick, onCancel }) {
  * Select mode (the Select button, or press and hold a scan) lets the user pick
  * several scans and export or delete just those.
  */
-export default function HistoryScreen({ showToast, onFocusChange, onGoScan }) {
+export default function HistoryScreen({ showToast, onFocusChange, onGoScan, userId }) {
   const [records, setRecords] = useState(null); // null = still loading
   const [failed, setFailed] = useState(false);
   const [resultFilter, setResultFilter] = useState('all');
@@ -105,13 +105,19 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan }) {
 
   const refresh = useCallback(async () => {
     try {
-      setRecords(await listScans());
+      setRecords(await listScans(userId));
       setFailed(false);
     } catch {
       setFailed(true);
       setRecords([]);
     }
-  }, []);
+  }, [userId]);
+
+  useEffect(() => {
+    const handleSynced = () => { void refresh(); };
+    window.addEventListener('fecalvision:history-synced', handleSynced);
+    return () => window.removeEventListener('fecalvision:history-synced', handleSynced);
+  }, [refresh]);
 
   useEffect(() => {
     // Loading from the on-device database, then storing what it returned.
@@ -208,24 +214,36 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan }) {
   };
 
   const remove = async (record) => {
-    await deleteScan(record.id);
-    setOpenId(null);
-    await refresh();
-    showToast({
-      message: 'Scan deleted.',
-      actionLabel: 'Undo',
-      onAction: async () => {
-        await restoreScan(record);
-        await refresh();
-      },
-    });
+    try {
+      await deleteScan(record.id);
+      setOpenId(null);
+      await refresh();
+      showToast({
+        message: 'Scan deleted.',
+        actionLabel: 'Undo',
+        onAction: async () => {
+          await restoreScan(record);
+          await refresh();
+        },
+      });
+    } catch (error) {
+      console.error('Could not delete scan:', error);
+      const reason = error instanceof Error ? ` (${error.message})` : '';
+      showToast({ message: `Could not delete this scan${reason}. Please try again.` });
+    }
   };
 
   const clearAll = async () => {
     setConfirmClear(false);
-    await clearScans();
-    await refresh();
-    showToast({ message: 'History cleared.' });
+    try {
+      await clearScans(userId);
+      await refresh();
+      showToast({ message: 'History cleared.' });
+    } catch (error) {
+      console.error('Could not clear scan history:', error);
+      await refresh();
+      showToast({ message: 'Could not clear scan history. Please try again.' });
+    }
   };
 
   const savePhoto = (record) => {
@@ -256,17 +274,23 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan }) {
 
   const removePicked = async () => {
     const gone = picked;
-    await Promise.all(gone.map((r) => deleteScan(r.id)));
-    stopSelecting();
-    await refresh();
-    showToast({
-      message: `${gone.length} ${gone.length === 1 ? 'scan' : 'scans'} deleted.`,
-      actionLabel: 'Undo',
-      onAction: async () => {
-        await Promise.all(gone.map((r) => restoreScan(r)));
-        await refresh();
-      },
-    });
+    try {
+      await Promise.all(gone.map((r) => deleteScan(r.id)));
+      stopSelecting();
+      await refresh();
+      showToast({
+        message: `${gone.length} ${gone.length === 1 ? 'scan' : 'scans'} deleted.`,
+        actionLabel: 'Undo',
+        onAction: async () => {
+          await Promise.all(gone.map((r) => restoreScan(r)));
+          await refresh();
+        },
+      });
+    } catch (error) {
+      console.error('Could not delete selected scans:', error);
+      await refresh();
+      showToast({ message: 'Could not delete the selected scans. Please try again.' });
+    }
   };
 
   // ---- one scan, full result ---------------------------------------------
