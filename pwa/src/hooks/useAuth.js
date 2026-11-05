@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 const GUEST_KEY = 'fecalvision-guest-session';
 const GUEST_AUTH_SESSION_KEY = 'fecalvision-guest-auth-session';
 const GUEST_MIGRATION_KEY = 'fecalvision-pending-guest-migration';
+const GUEST_OAUTH_RETRY_KEY = 'fecalvision-guest-google-retry';
 
 function getErrorMessage(error) {
   if (error instanceof Error) return error.message;
@@ -55,6 +56,14 @@ function getPendingGuestMigration(userId) {
     return guestUserId && guestUserId !== userId ? guestUserId : null;
   } catch {
     return null;
+  }
+}
+
+function hasPendingGuestMigration() {
+  try {
+    return Boolean(sessionStorage.getItem(GUEST_MIGRATION_KEY));
+  } catch {
+    return false;
   }
 }
 
@@ -114,6 +123,7 @@ export function useAuth() {
   const syncQueued = useRef(false);
   const resolvingGuest = useRef(false);
   const migratingGuest = useRef(false);
+  const retryingGuestOAuth = useRef(false);
 
   useEffect(() => {
     if (!supabase) return undefined;
@@ -142,7 +152,9 @@ export function useAuth() {
   }, []);
 
   useEffect(() => {
-    if (!supabase || !isGuest || user || resolvingGuest.current) return undefined;
+    if (!supabase || !isGuest || user || resolvingGuest.current || hasPendingGuestMigration()) {
+      return undefined;
+    }
     let active = true;
     resolvingGuest.current = true;
     const resolveGuest = async () => {
@@ -185,6 +197,70 @@ export function useAuth() {
     void resolveGuest();
     return () => { active = false; };
   }, [isGuest, online, user]);
+
+  useEffect(() => {
+    if (!supabase || retryingGuestOAuth.current) return undefined;
+
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('error_code') !== 'identity_already_exists') return undefined;
+
+    const guestUserId = getPendingGuestMigration('');
+    if (!guestUserId) return undefined;
+
+    url.searchParams.delete('error');
+    url.searchParams.delete('error_code');
+    url.searchParams.delete('error_description');
+    url.hash = '';
+    window.history.replaceState(window.history.state, '', url);
+
+    let alreadyRetried;
+    try {
+      alreadyRetried = sessionStorage.getItem(GUEST_OAUTH_RETRY_KEY) === '1';
+    } catch (error) {
+      console.warn('Could not check the Google sign-in retry state:', error);
+      alreadyRetried = true;
+    }
+
+    if (alreadyRetried) {
+      try {
+        sessionStorage.removeItem(GUEST_OAUTH_RETRY_KEY);
+      } catch (error) {
+        console.warn('Could not clear the Google sign-in retry state:', error);
+      }
+      window.setTimeout(
+        () => setAuthError('Google sign-in could not be completed. Please try again.'),
+        0,
+      );
+      return undefined;
+    }
+
+    retryingGuestOAuth.current = true;
+    resolvingGuest.current = true;
+    const resumeGoogleSignIn = async () => {
+      setSigningIn(true);
+      try {
+        sessionStorage.setItem(GUEST_OAUTH_RETRY_KEY, '1');
+        const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+        if (signOutError) throw signOutError;
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: window.location.origin },
+        });
+        if (error) throw error;
+      } catch (error) {
+        console.error('Could not resume Google sign-in:', error);
+        sessionStorage.removeItem(GUEST_OAUTH_RETRY_KEY);
+        sessionStorage.removeItem(GUEST_MIGRATION_KEY);
+        setAuthError(getErrorMessage(error));
+        setSigningIn(false);
+      } finally {
+        resolvingGuest.current = false;
+        retryingGuestOAuth.current = false;
+      }
+    };
+    void resumeGoogleSignIn();
+    return undefined;
+  }, []);
 
   const runSync = useCallback(async () => {
     if (!user || (user.is_anonymous && !isGuest)) return;
@@ -279,6 +355,7 @@ export function useAuth() {
         await copyGuestHistoryToAccount(guestUserId, user.id);
         await syncScans(user.id);
         sessionStorage.removeItem(GUEST_MIGRATION_KEY);
+        sessionStorage.removeItem(GUEST_OAUTH_RETRY_KEY);
         setSyncError(null);
         setSyncStatus('synced');
       } catch (error) {
@@ -314,6 +391,9 @@ export function useAuth() {
         }
         await syncScans(guestUser.id);
         sessionStorage.setItem(GUEST_MIGRATION_KEY, guestUser.id);
+        sessionStorage.removeItem(GUEST_OAUTH_RETRY_KEY);
+        const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+        if (signOutError) throw signOutError;
       }
 
       const { error } = await supabase.auth.signInWithOAuth({
@@ -328,6 +408,7 @@ export function useAuth() {
       setSigningIn(false);
       try {
         sessionStorage.removeItem(GUEST_MIGRATION_KEY);
+        sessionStorage.removeItem(GUEST_OAUTH_RETRY_KEY);
       } catch {
         /* The sign-in error is still surfaced in the UI. */
       }
