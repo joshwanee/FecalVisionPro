@@ -16,6 +16,8 @@ Copy `.env.example` to `.env` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANO
 
 To enable cloud scan history, enable **Anonymous Sign-Ins** under **Authentication → Sign In / Providers**, then run [`supabase/setup-scan-cloud.sql`](supabase/setup-scan-cloud.sql) in the Supabase SQL Editor. The app keeps scans and photos in IndexedDB first, then syncs them to the private `scan-images` bucket and `scan_history` table whenever online. Row-level policies scope cloud rows and images to the current Supabase account. Supabase sessions persist in browser storage, so reopening the app restores the active Google account or guest session. Guest mode is also remembered per browser, and its anonymous session is saved separately. There is no in-app logout button: choose an account once, then use **Transfer guest scans to Google** to copy guest history to Google. The guest originals remain under the guest account; scans made after Google sign-in are saved to Google. To end the saved session, clear this site's browser data or revoke the app session in Supabase Auth.
 
+If a scan row points to a missing Storage image, sync restores it from this browser's cached photo when possible. If no copy exists, the scan result remains available without its photo, and the missing object does not block syncing other scans.
+
 ## Scripts
 
 | Command | What it does |

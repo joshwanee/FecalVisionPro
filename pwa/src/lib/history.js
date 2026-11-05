@@ -237,6 +237,33 @@ async function replaceMigratedScanId(record, newId) {
   return replacement;
 }
 
+function isStorageObjectNotFound(error) {
+  return error?.status === 404 ||
+    error?.statusCode === '404' ||
+    error?.error === 'not_found' ||
+    /object not found/i.test(error?.message ?? '');
+}
+
+async function listStorageObjectNames(userId) {
+  const names = new Set();
+  const pageSize = 1000;
+  let offset = 0;
+
+  while (true) {
+    const { data, error } = await supabase.storage
+      .from(BUCKET)
+      .list(userId, { limit: pageSize, offset });
+    if (error) {
+      if (isStorageObjectNotFound(error)) return names;
+      throw error;
+    }
+
+    for (const item of data ?? []) names.add(item.name);
+    if (!data || data.length < pageSize) return names;
+    offset += pageSize;
+  }
+}
+
 /**
  * Push local changes and cache this account's cloud scans for offline viewing.
  * Each cloud operation is scoped to the current Supabase Auth user.
@@ -345,20 +372,46 @@ export async function syncScans(userId) {
     .order('created_at', { ascending: false });
   if (listError) throw listError;
 
+  const cachedRecords = await listScans(userId);
+  const localRecordsById = new Map(cachedRecords.map((record) => [record.id, record]));
+  const hasCachedImages = cachedRecords.some((record) => record.thumb);
+  const storageObjectNames = hasCachedImages ? await listStorageObjectNames(userId) : null;
+
   for (const cloudRecord of cloudRecords ?? []) {
-    const localRecord = await getScan(cloudRecord.id);
+    const localRecord = localRecordsById.get(cloudRecord.id);
     if (localRecord?.syncStatus === 'pending') continue;
 
-    let thumb = localRecord?.thumb;
-    if (!thumb) {
-      if (!cloudRecord.image_path) {
-        throw new Error(`Cloud scan ${cloudRecord.id} has no image path.`);
+    let thumb = localRecord?.thumb ?? null;
+    let imageMissing = !cloudRecord.image_path;
+    if (cloudRecord.image_path) {
+      const pathPrefix = `${userId}/`;
+      const objectName = cloudRecord.image_path.startsWith(pathPrefix)
+        ? cloudRecord.image_path.slice(pathPrefix.length)
+        : null;
+      const objectExists = storageObjectNames
+        ? objectName !== null && storageObjectNames.has(objectName)
+        : null;
+
+      if (thumb && objectExists === false && objectName !== null) {
+        const { error: uploadError } = await supabase.storage
+          .from(BUCKET)
+          .upload(cloudRecord.image_path, thumb, { contentType: 'image/jpeg', upsert: true });
+        if (uploadError) throw uploadError;
+        storageObjectNames.add(objectName);
+      } else if (objectName === null) {
+        imageMissing = true;
+      } else if (!thumb && objectExists !== false) {
+        const { data, error: downloadError } = await supabase.storage
+          .from(BUCKET)
+          .download(cloudRecord.image_path);
+        if (downloadError) {
+          if (!isStorageObjectNotFound(downloadError)) throw downloadError;
+          imageMissing = true;
+        } else {
+          thumb = data;
+        }
       }
-      const { data, error: downloadError } = await supabase.storage
-        .from(BUCKET)
-        .download(cloudRecord.image_path);
-      if (downloadError) throw downloadError;
-      thumb = data;
+      imageMissing ||= !thumb;
     }
 
     await run('readwrite', (s) => s.put({
@@ -379,6 +432,7 @@ export async function syncScans(userId) {
       problems: cloudRecord.problems ?? [],
       cloudUserId: userId,
       imagePath: cloudRecord.image_path,
+      imageMissing,
       syncStatus: 'synced',
     }));
   }

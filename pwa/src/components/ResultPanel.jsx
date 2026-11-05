@@ -31,7 +31,7 @@ export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
   const backendDesc = backend && describeBackend(backend);
   const [aspect, setAspect] = useState(null); // photo width / height, known once it loads
   const headingRef = useRef(null);
-  const [reportBlob, setReportBlob] = useState(null);
+  const [report, setReport] = useState(null);
   const [shareNote, setShareNote] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -70,9 +70,13 @@ export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
     [verdict, uncertain, result, timestamp, inputMode],
   );
   useEffect(() => {
+    if (!photoBlob) return undefined;
     let cancelled = false;
     renderReportCard(record, photoBlob)
-      .then((canvas) => canvas.toBlob((blob) => !cancelled && setReportBlob(blob), 'image/png'))
+      .then((canvas) => canvas.toBlob(
+        (blob) => !cancelled && setReport({ photoBlob, blob }),
+        'image/png',
+      ))
       .catch(() => {});
     return () => {
       cancelled = true;
@@ -80,8 +84,8 @@ export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
   }, [record, photoBlob]);
 
   const share = async () => {
-    if (!reportBlob) return;
-    const outcome = await shareImage(reportBlob, {
+    if (!report || report.photoBlob !== photoBlob || !report.blob) return;
+    const outcome = await shareImage(report.blob, {
       filename: `fecalvision-${new Date(timestamp).toISOString().slice(0, 16).replace(/[:T]/g, '-')}.png`,
       title: 'FecalVision result',
       text: `FecalVision screening result: ${verdict}. Screening aid, not a diagnosis.`,
@@ -134,27 +138,32 @@ export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
 
       {/* ---- what was analysed: the photo itself ---- */}
       <figure className="photo">
-        <div className="photo__frame" style={aspect ? { aspectRatio: aspect } : undefined}>
-          <img
-            src={photoUrl}
-            alt="The photo that was analysed"
-            onLoad={(e) => setAspect(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)}
-          />
-          {/* Only when just the centre square was checked: outline exactly that part. */}
-          {inputMode === 'square' && aspect && (
-            <span
-              className="photo__square"
-              style={{
-                width: `${aspect >= 1 ? 100 / aspect : 100}%`,
-                height: `${aspect >= 1 ? 100 : 100 * aspect}%`,
-              }}
-              aria-hidden="true"
-            />
-          )}
-        </div>
-        <figcaption>
-          {inputMode === 'square' ? 'Only the outlined square was checked.' : 'The whole photo was checked.'}
-        </figcaption>
+        {photoUrl ? (
+          <>
+            <div className="photo__frame" style={aspect ? { aspectRatio: aspect } : undefined}>
+              <img
+                src={photoUrl}
+                alt="The photo that was analysed"
+                onLoad={(e) => setAspect(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)}
+              />
+              {inputMode === 'square' && aspect && (
+                <span
+                  className="photo__square"
+                  style={{
+                    width: `${aspect >= 1 ? 100 / aspect : 100}%`,
+                    height: `${aspect >= 1 ? 100 : 100 * aspect}%`,
+                  }}
+                  aria-hidden="true"
+                />
+              )}
+            </div>
+            <figcaption>
+              {inputMode === 'square' ? 'Only the outlined square was checked.' : 'The whole photo was checked.'}
+            </figcaption>
+          </>
+        ) : (
+          <p className="photo__missing">The original scan photo is unavailable in cloud storage and is not cached on this device.</p>
+        )}
       </figure>
 
       {/* ---- all four scores: always visible ---- */}
@@ -256,7 +265,12 @@ export default function ResultPanel({ scan, primaryLabel, onPrimary, extra }) {
           <button type="button" className="button button--primary" onClick={onPrimary}>
             {primaryLabel}
           </button>
-          <button type="button" className="button button--secondary" onClick={share} disabled={!reportBlob}>
+          <button
+            type="button"
+            className="button button--secondary"
+            onClick={share}
+            disabled={!photoBlob || report?.photoBlob !== photoBlob || !report.blob}
+          >
             <ShareIcon /> Share
           </button>
         </div>

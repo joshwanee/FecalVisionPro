@@ -146,7 +146,11 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan, user
 
   // Small object URLs for the thumbnails, released when the list changes.
   const thumbUrls = useMemo(
-    () => Object.fromEntries((records ?? []).map((r) => [r.id, URL.createObjectURL(r.thumb)])),
+    () => Object.fromEntries(
+      (records ?? [])
+        .filter((record) => record.thumb)
+        .map((record) => [record.id, URL.createObjectURL(record.thumb)]),
+    ),
     [records],
   );
   useEffect(() => () => Object.values(thumbUrls).forEach((u) => URL.revokeObjectURL(u)), [thumbUrls]);
@@ -247,6 +251,10 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan, user
   };
 
   const savePhoto = (record) => {
+    if (!record.thumb) {
+      showToast({ message: 'This scan’s photo is unavailable on this device.' });
+      return;
+    }
     download(record.thumb, photoFileName(record));
     showToast({ message: 'Photo saved to this phone.' });
   };
@@ -316,9 +324,11 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan, user
           onPrimary={closeDetail}
           extra={
             <>
-              <button type="button" className="button button--secondary" onClick={() => savePhoto(open)}>
-                <DownloadIcon /> Save photo
-              </button>
+              {open.thumb && (
+                <button type="button" className="button button--secondary" onClick={() => savePhoto(open)}>
+                  <DownloadIcon /> Save photo
+                </button>
+              )}
               <button type="button" className="button button--danger-quiet" onClick={() => remove(open)}>
                 <TrashIcon /> Delete this scan
               </button>
@@ -430,14 +440,20 @@ export default function HistoryScreen({ showToast, onFocusChange, onGoScan, user
                     onClick={() => onRowClick(r.id)}
                     {...hold.handlers(r.id)}
                   >
-                    <img
-                      className="row__thumb"
-                      src={thumbUrls[r.id]}
-                      alt=""
-                      width="64"
-                      height="64"
-                      draggable={false}
-                    />
+                    {thumbUrls[r.id] ? (
+                      <img
+                        className="row__thumb"
+                        src={thumbUrls[r.id]}
+                        alt=""
+                        width="64"
+                        height="64"
+                        draggable={false}
+                      />
+                    ) : (
+                      <span className="row__thumb row__thumb--missing" aria-label="Photo unavailable">
+                        No photo
+                      </span>
+                    )}
                     <span className="row__text">
                       <span className="row__title">
                         <span className={`row__status row__status--${tone}`} aria-hidden="true">

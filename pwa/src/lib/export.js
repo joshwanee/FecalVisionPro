@@ -61,7 +61,7 @@ export function buildCsv(records) {
       r.inputMode === 'square' ? 'centre square' : 'whole photo',
       ...classes.map((c) => pct(byLabel[c] ?? 0)),
       pct(r.threshold),
-      photoName(r),
+      r.thumb ? photoName(r) : '',
     ];
   });
   // The leading BOM character makes Excel read the file as UTF-8.
@@ -81,8 +81,10 @@ export async function buildJson(records) {
       probabilities: Object.fromEntries(r.ranked.map((x) => [x.label, x.probability])),
       threshold: r.threshold,
       temperature: r.temperature,
-      photo_note: 'The photo that was analysed (about 640 px on the long side), as a JPEG data URI',
-      photo: await blobToDataUrl(r.thumb),
+      photo_note: r.thumb
+        ? 'The photo that was analysed (about 640 px on the long side), as a JPEG data URI'
+        : 'The original scan photo is unavailable.',
+      photo: r.thumb ? await blobToDataUrl(r.thumb) : null,
     })),
   );
   return new Blob([JSON.stringify({ app: 'FecalVision', exported: new Date().toISOString(), scans: items }, null, 2)], {
@@ -93,6 +95,7 @@ export async function buildJson(records) {
 export async function buildZip(records) {
   const files = [{ name: 'scans.csv', data: new TextEncoder().encode(buildCsv(records)) }];
   for (const r of records) {
+    if (!r.thumb) continue;
     files.push({ name: photoName(r), data: new Uint8Array(await r.thumb.arrayBuffer()) });
   }
   return makeZip(files);

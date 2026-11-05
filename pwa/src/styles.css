@@ -1134,6 +1134,18 @@ progress::-moz-progress-bar {
   object-fit: contain;
 }
 
+.photo__missing {
+  display: grid;
+  min-height: 8rem;
+  place-items: center;
+  padding: var(--space-2);
+  color: var(--text-muted);
+  background: var(--camera);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
 /* Outlines the centre square when only that part was analysed; dims the rest. */
 .photo__square {
   position: absolute;
@@ -1380,6 +1392,15 @@ progress::-moz-progress-bar {
   object-fit: cover;
   border-radius: var(--radius-sm);
   background: var(--camera);
+}
+
+.row__thumb--missing {
+  display: grid;
+  place-items: center;
+  padding: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.625rem;
+  text-align: center;
 }
 
 .row__text {
